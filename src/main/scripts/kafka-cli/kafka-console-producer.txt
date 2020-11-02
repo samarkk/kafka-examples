@@ -1,0 +1,12 @@
+kafka-console-producer --broker-list 127.0.0.1:9092 --topic first_topic --producer-property acks=all
+
+# if a topic does not exist it will be automatically created
+# defaults will be used
+# auto topic creation can be turned off by
+# auto.create.topics.enable=false in broker config in server.properties
+kafka-console-producer --broker-list 127.0.0.1:9092 --topic new_topic
+
+kafka-topics --zookeeper localhost:2181 --topic new_topic --describe
+# generally create a topic before producing to it
+kafka-topics --zookeeper localhost:2181  --delete --topic new_topic
+kafka-topics --zookeeper localhost:2181  --list

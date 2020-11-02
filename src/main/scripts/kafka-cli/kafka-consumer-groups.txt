@@ -1,0 +1,19 @@
+# see the options
+kafka-consumer-groups
+
+# list the consumer groups
+kafka-consumer-groups --bootstrap-server localhost:9092 --list
+
+# describe a consumer group
+kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group first_group
+
+# shut off the consumers for the second group and check
+
+######################################################
+# reset offsets
+######################################################
+# rest cannot be done for active group
+
+kafka-consumer-groups --bootstrap-server localhost:9092 --group first_group --reset-offsets --shift-by -5 --execute --topic first_topic
+
+kafka-consumer-groups --bootstrap-server localhost:9092 --group second_group --reset-offsets --shift-by -5 --execute --topic first_topic

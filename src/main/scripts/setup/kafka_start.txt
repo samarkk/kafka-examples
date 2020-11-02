@@ -1,0 +1,22 @@
+# create the zookeeper directory
+mkdir /home/samar/zookeeper
+# change the data directory configuration for zookeeper
+# in /usr/lib/confluent/etc/kafka change the data directory for zookeeper
+# dataDir=/home/samar/zookeeper
+
+# start zookeeper
+zookeeper-server-start -daemon /usr/lib/confluent/etc/kafka/zookeeper.properties
+# verify port 2181 occupied
+tlpg 2181
+# zookeeper-shell localhost:2181
+# ls / 
+# we shall see brokers, topics as they are created
+# create the kafka directory /home/samar/kafka/logs1
+# change the log.dirs setting in server.properties to this setting
+# log.dirs=/home/samar/kafka/logs1
+# broker.id has to be different for each broker
+# same zookeeper.connect will make different brokers part of a cluster
+
+# start kafka server
+kafka-server-start -daemon /usr/lib/confluent/etc/kafka/server.properties
+

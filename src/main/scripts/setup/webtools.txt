@@ -1,0 +1,39 @@
+# zookeeper navigator run using docker
+# if zoonavigator used
+# docker stop zoonavigator
+# docker container rm zoonavigator
+
+docker run \
+  -d --network host \
+  -e HTTP_PORT=9001 \
+  --name zoonavigator \
+  --restart unless-stopped \
+  elkozmon/zoonavigator:latest
+
+# kafka manager run using docker-compose
+docker-compose -f <kafka_manager yml file> up -d
+
+
+#landoop topics ui
+# start rest-server
+kafka-rest-start -daemon /usr/lib/confluent/etc/kafka-rest/kafka-rest.properties
+
+# add the following to kafka-rest.properties
+access.control.allow.methods=GET,POST,PUT,DELETE,OPTIONS
+access.control.allow.origin=*
+
+docker run --rm -it -p 8000:8000 \
+               -e "KAFKA_REST_PROXY_URL=http://localhost:8082" \
+               landoop/kafka-topics-ui
+
+# knock out PROXY=true
+# replace localhost with ip
+
+docker run --rm -it -p 8000:8000 \
+           -e "CONNECT_URL=http://192.168.181.136:8084" \
+           landoop/kafka-connect-ui
+
+docker run --rm -it -p 8000:8000 \
+           -e "CONNECT_URL=http://192.168.181.136:8084" \
+           landoop/kafka-connect-ui
+

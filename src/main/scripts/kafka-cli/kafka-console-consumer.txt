@@ -1,0 +1,23 @@
+# only new items will be appended, the consumer by default takes the offset latest
+kafka-console-consumer --bootstrap-server localhost:9092 --topic first_topic
+
+# to see topics from beginning
+kafka-console-consumer --bootstrap-server localhost:9092 --topic first_topic --from-beginning
+
+
+# partition and offset specify together and cosnume strings allowed earliest, latest(default)
+kafka-console-consumer --bootstrap-server localhost:9092 --topic first_topic --offset earliest --partition 0
+
+# we can specify a number
+kafka-console-consumer --bootstrap-server localhost:9092 --topic first_topic --offset 0 --partition 0
+
+
+
+###################################################
+# consumer in groups
+###################################################
+kafka-console-consumer --bootstrap-server localhost:9092 --topic first_topic --group first_group
+
+kafka-console-consumer --bootstrap-server localhost:9092 --topic first_topic --group second_group
+
+# when we shut off all and issue for a group from-beginning we will not see any messages as the offsets for the group will be set

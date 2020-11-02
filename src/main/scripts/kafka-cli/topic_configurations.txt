@@ -1,0 +1,26 @@
+# see the options
+kafka-configs
+
+# create a test_config_topic to check out configurations
+kafka-topics --zookeeper localhost:2181 --create --topic test_config_topic --partitions 3 --replication-factor 1
+
+# describe configs for topic
+kafka-configs --bootstrap-server localhost:9092 --entity-type topics --entity-name test_config_topic --describe
+
+# add a configuration
+kafka-configs --bootstrap-server localhost:9092 --entity-type topics --entity-name test_config_topic  --add-config min.insync.replicas=2 --alter
+
+# check the configuration
+kafka-configs --bootstrap-server localhost:9092 --entity-type topics --entity-name test_config_topic --describe
+
+# see configurations using kafka-topics
+kafka-topics --zookeeper localhost:2181 --topic test_config_topic --describe
+
+# delete configuration
+kafka-configs --bootstrap-server localhost:9092 --entity-type topics --entity-name test_config_topic  --delete-config min.insync.replicas --alter
+
+# verify config deleted
+kafka-topics --zookeeper localhost:2181 --topic test_config_topic --describe
+
+# delete the topic
+kafka-topics --zookeeper localhost:2181 --delete --topic test_config_topic

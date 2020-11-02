@@ -1,0 +1,15 @@
+# copy server.properties to server1.properties, server2.properties
+# change broker.id to 1 and 2 
+# change listeners=PLAINTEXT ports respectively to 9093 and 9094
+# change log.dirs to /home/samar/kafka/logs2 and logs3
+# change confluent.metadata.server.listeners to 8091 and 8092
+# start the servers using the different server properties
+
+kafka-server-start -daemon /usr/lib/confluent/etc/kafka/server1.properties
+kafka-server-start -daemon /usr/lib/confluent/etc/kafka/server2.properties
+
+# create a topic with a replication factor of 3
+kafka-topics --zookeeper localhost:2181 --create --topic reps_topic --partitions 6 --replication-factor 3
+
+# describe the topic
+kafka-topics --zookeeper localhost:2181 --topic reps_topic --describe

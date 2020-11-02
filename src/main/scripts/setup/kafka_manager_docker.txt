@@ -1,0 +1,6 @@
+docker run -d \
+     -p 9010:9000  \
+     -e ZK_HOSTS="localhost:2181" \
+     hlebalbau/kafka-manager:stable
+
+docker run -d -p 9010:9000 -e ZK_HOSTS="192.168.1.100:2181" hlebalbau/kafka-manager:stable

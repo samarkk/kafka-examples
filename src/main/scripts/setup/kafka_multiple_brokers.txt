@@ -1,0 +1,26 @@
+# create a topic when only one broker is running
+# replication-factor 1 larger than available brokers will fail
+kafka-topics --zookeeper localhost:2181 --create --topic part_re_assign --partitions 6 --replication-factor 2
+
+# so create with it set to 1
+kafka-topics --zookeeper localhost:2181 --create --topic part_re_assign --partitions 6 --replication-factor 1
+
+# check the partition assignments - all to broker 0 so far
+kafka-topics --zookeeper localhost:2181 --describe --topic part_re_assign 
+
+# start the second broker
+kafka-server-start -daemon /usr/lib/confluent/etc/kafka/server1.properties
+
+# confirm in the ui - second broker has come up
+# tlpg 9093 should be red
+
+# start the third broker
+kafka-server-start -daemon /usr/lib/confluent/etc/kafka/server2.properties
+
+# confirm in the ui - third broker has come up
+# tlpg 9094 should be red
+
+# select topics in the ui
+# click generate partition assignments
+# after that go back to topic list and click run partition assignments
+# confirm part_re_assign has two partitions on each broker
