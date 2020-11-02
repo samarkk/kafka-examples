@@ -1,0 +1,23 @@
+{
+     "type": "record",
+     "namespace": "com.example",
+     "name": "Nseforec",
+     "version": "2",
+     "fields": [
+       { "name": "instrument", "type": "string", "doc": "Future or option broadly" },
+       { "name": "symobl", "type": "string", "doc": "Name of the stock traded" },
+       { "name": "expiry_dt", "type": "string", "doc": "Expiry date of contract" },
+       { "name": "strike_pr", "type": "float", "doc": "Strike price for options, 0 for Futures" },
+       { "name": "option_typ", "type": "string", "doc": "CE, PE, XX" },
+       { "name": "openpr", "type": "float", "doc": "opening price" },
+       { "name": "highpr", "type": "float", "doc": "highest price in the day" },
+       { "name": "lowpr", "type": "float", "doc": "lowest price in the day" },
+       { "name": "closepr", "type": "float", "doc": "closing price" },
+       { "name": "settlepr", "type": "float", "doc": "settlement price" },
+       { "name": "contracts", "type": "int", "doc": "number of contracts" },
+       { "name": "valinlakh", "type": "float", "doc": "total value traded in lakhs" },
+       { "name": "openint", "type":"int", "doc": "total positions open" },
+       { "name": "chginoi", "type": "int", "doc": "change in open interest in the day" },
+       { "name": "tmstamp", "type": "string", "doc": "trade date in DD-MMMM-YYYY format"}
+     ]
+}
