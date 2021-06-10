@@ -1,58 +1,57 @@
 package consumer;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Properties;
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.internals.Topic;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Properties;
 
 public class ConsumerAssignSeek {
-    public static void main(String[] args) {
-
-        Logger logger = LoggerFactory.getLogger(ConsumerDemo.class.getName());
-        String topic = "ide_topic";
-        // build a configutation
+    private static Properties createConsumerConfiguration() {
         Properties props = new Properties();
-        props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "ideappg");
-
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(props);
-        consumer.subscribe(Collections.singleton(topic));
-
-        TopicPartition partitionTRF =  new TopicPartition(topic, 0);
-        long offsetToReadFrom = 10L;
-        consumer.assign(Collections.singleton(partitionTRF));
-        try{
-        while(true){
-            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
-            for (ConsumerRecord<String, String> record : records) {
-                String valToPrint = "Key: " + record.key() +
-                        "\nValue: " + record.value() +
-                        "\nPartition: " + record.partition() +
-                        "\nOffset: " + record.offset();
-                logger.info(valToPrint);
-            }
-        }}catch (Exception ex){
-            System.out.println("Some problem. Exception Happened");
-            ex.printStackTrace();
-        } finally {
-            consumer.close();
-        }
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "192.168.181.138:9092");
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+                StringDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                StringDeserializer.class.getName());
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "idegr");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        return props;
     }
 
+    // create a consumer from configurations
+    private static KafkaConsumer<String, String> createKafkaConsumer() {
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<String,
+                String>(createConsumerConfiguration());
+        return consumer;
+    }
+
+    public static void main(String[] args) {
+        TopicPartition partitionToReadFrom = new TopicPartition("ide_topic", 0);
+        long offsetToReadFrom = 5L;
+        KafkaConsumer<String, String> consumer = createKafkaConsumer();
+        consumer.assign(Arrays.asList(partitionToReadFrom));
+        consumer.seek(partitionToReadFrom, offsetToReadFrom);
+        int batchNo = 0;
+        int counter = 0;
+        while (batchNo < 5) {
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
+            batchNo++;
+            System.out.println("No of records gotten in batch " + batchNo + ": " + records.count());
+            for (ConsumerRecord record : records) {
+                counter++;
+                if (counter % 250 == 0)
+                    System.out.println("Topic: " + record.topic() + ", Partition: " + record.partition() + ", Offset: " + record.offset() + ", Value: " + record.value());
+            }
+            counter = 0;
+        }
+    }
 }
