@@ -14,30 +14,30 @@ import java.util.Collections;
 import java.util.Properties;
 
 public class ConsumerAssignSeek {
-    private static Properties createConsumerConfiguration() {
+    private static Properties createConsumerConfiguration(String bservers, String group) {
         Properties props = new Properties();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "192.168.181.138:9092");
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bservers);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
                 StringDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                 StringDeserializer.class.getName());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "idegr");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, group);
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         return props;
     }
 
     // create a consumer from configurations
-    private static KafkaConsumer<String, String> createKafkaConsumer() {
+    private static KafkaConsumer<String, String> createKafkaConsumer(String bservers, String group) {
         KafkaConsumer<String, String> consumer = new KafkaConsumer<String,
-                String>(createConsumerConfiguration());
+                String>(createConsumerConfiguration(bservers, group));
         return consumer;
     }
 
     public static void main(String[] args) {
-        TopicPartition partitionToReadFrom = new TopicPartition("ide_topic", 0);
+        TopicPartition partitionToReadFrom = new TopicPartition(args[2], 0);
         long offsetToReadFrom = 5L;
-        KafkaConsumer<String, String> consumer = createKafkaConsumer();
+        KafkaConsumer<String, String> consumer = createKafkaConsumer(args[0],args[1]);
         consumer.assign(Arrays.asList(partitionToReadFrom));
         consumer.seek(partitionToReadFrom, offsetToReadFrom);
         int batchNo = 0;
