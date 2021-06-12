@@ -25,11 +25,7 @@ public class ConsumerDemoWithThread {
 
     private void mainMethod(String bootstrapServers, String groupId, String topic) {
         Logger logger = LoggerFactory.getLogger(ConsumerDemoWithThread.class.getName());
-
-//        String bootstrapServers = "192.168.181.138:9092";
-//        String groupId = "idegr";
-//        String topic = "ide_topic";
-
+        
         // latch for dealing with multiple threads
         CountDownLatch latch = new CountDownLatch(1);
 
