@@ -1,26 +1,17 @@
 package consumer;
 
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.clients.admin.AlterConsumerGroupOffsetsOptions;
-import org.apache.kafka.clients.consumer.*;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.serialization.StringDeserializer;
+        import org.apache.kafka.clients.consumer.*;
+        import org.apache.kafka.common.serialization.StringDeserializer;
 
-import java.time.Duration;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.ExecutionException;
+        import java.time.Duration;
+        import java.util.Collections;
+        import java.util.Properties;
+        import java.util.concurrent.ExecutionException;
 
 public class ConsumerDemo {
     // create the consumer configurations
-    static String bservers = "192.168.181.138:9092";
-    static String groupId = "idegr";
-    static String topic = "ide_topic";
 
-    private static Properties createConsumerConfiguration() {
+    private static Properties createConsumerConfiguration(String bservers, String groupId, String topic) {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bservers);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
@@ -36,28 +27,28 @@ public class ConsumerDemo {
     }
 
     // create a consumer from configurations
-    private static KafkaConsumer<String, String> createKafkaConsumer() {
+    private static KafkaConsumer<String, String> createKafkaConsumer(String bservers, String groupId, String topic) {
         KafkaConsumer<String, String> consumer = new KafkaConsumer<String,
-                String>(createConsumerConfiguration());
+                String>(createConsumerConfiguration(bservers, groupId, topic));
         return consumer;
     }
 
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         // subscribe to topic, topics
-        KafkaConsumer<String, String> consumer = createKafkaConsumer();
-        consumer.subscribe(Collections.singleton(topic));
+        KafkaConsumer<String, String> consumer = createKafkaConsumer(args[0], args[1], args[2]);
+        consumer.subscribe(Collections.singleton(args[2]));
         try {
             while (true) {
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
-                    if (records.count() > 0) {
-                        for (ConsumerRecord<String, String> record : records) {
-                            String recordVal = record.value().toUpperCase();
-                            System.out.println("Record partition: " + record.partition() +
-                                    ", offset: " + record.offset() + ", value " +
-                                    "processed: " + recordVal);
-                        }
-                        consumer.commitSync();
+                if (records.count() > 0) {
+                    for (ConsumerRecord<String, String> record : records) {
+                        String recordVal = record.value().toUpperCase();
+                        System.out.println("Record partition: " + record.partition() +
+                                ", offset: " + record.offset() + ", value " +
+                                "processed: " + recordVal);
                     }
+                    consumer.commitSync();
+                }
             }
         } catch (Exception ex) {
             System.out.println("Some exception happened");
