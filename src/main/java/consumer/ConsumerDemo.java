@@ -1,12 +1,12 @@
 package consumer;
 
-        import org.apache.kafka.clients.consumer.*;
-        import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.common.serialization.StringDeserializer;
 
-        import java.time.Duration;
-        import java.util.Collections;
-        import java.util.Properties;
-        import java.util.concurrent.ExecutionException;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 
 public class ConsumerDemo {
     // create the consumer configurations
