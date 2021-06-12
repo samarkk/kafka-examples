@@ -10,88 +10,116 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
-public class ConsumerWithThread {
+public class ConsumerDemoWithThread {
     public static void main(String[] args) {
-        new ConsumerWithThread().run();
+        new ConsumerDemoWithThread().mainMethod(args[0], args[1], args[2]);
     }
 
-    private void run() {
-        Logger logger = LoggerFactory.getLogger(ConsumerWithThread.class.getName());
-        String bservers = "localhost:9092";
-        String groupid = "idethreadg";
-        String topic = "ide_topic";
+    private ConsumerDemoWithThread() {
+
+    }
+
+    private void mainMethod(String bootstrapServers, String groupId, String topic) {
+        Logger logger = LoggerFactory.getLogger(ConsumerDemoWithThread.class.getName());
+
+//        String bootstrapServers = "192.168.181.138:9092";
+//        String groupId = "idegr";
+//        String topic = "ide_topic";
+
+        // latch for dealing with multiple threads
         CountDownLatch latch = new CountDownLatch(1);
 
-        Runnable myConsumerRunnable = new ConsumerRunnable(bservers, groupid, topic, latch);
+        // create the consumer runnable
+        logger.info("Creating the consumer thread");
+        Runnable myConsumerRunnable = new ConsumerRunnable(
+                bootstrapServers,
+                groupId,
+                topic,
+                latch
+        );
+
+        // start the thread
         Thread myThread = new Thread(myConsumerRunnable);
-        logger.info("Starting the thread");
         myThread.start();
 
+        // add a shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            logger.info("Caught the shutdown hook");
+            logger.info("Caught shutdown hook");
             ((ConsumerRunnable) myConsumerRunnable).shutdown();
             try {
                 latch.await();
-            } catch (InterruptedException iex) {
-                iex.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
             logger.info("Application has exited");
-        }));
+        }
+
+        ));
 
         try {
             latch.await();
-        } catch (InterruptedException iex) {
-            logger.error("Application got interrupted");
+        } catch (InterruptedException e) {
+            logger.error("Application got interrupted", e);
         } finally {
             logger.info("Application is closing");
         }
     }
 
-    public class ConsumerRunnable implements Runnable {
+    private class ConsumerRunnable implements Runnable {
+
         private CountDownLatch latch;
         private KafkaConsumer<String, String> consumer;
         private Logger logger = LoggerFactory.getLogger(ConsumerRunnable.class.getName());
 
-        public ConsumerRunnable(String bservers, String groupid, String topic, CountDownLatch latch) {
+        public ConsumerRunnable(String bootstrapServers,
+                                String groupId,
+                                String topic,
+                                CountDownLatch latch) {
             this.latch = latch;
 
-            Properties props = new Properties();
-            props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bservers);
-            props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-            props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-            props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupid);
-            props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+            // create consumer configs
+            Properties properties = new Properties();
+            properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+            properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+            properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+            properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+            properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-            consumer = new KafkaConsumer<String, String>(props);
-            consumer.subscribe(Collections.singletonList(topic));
+            // create consumer
+            consumer = new KafkaConsumer<String, String>(properties);
+            // subscribe consumer to our topic(s)
+            consumer.subscribe(Arrays.asList(topic));
         }
 
         @Override
         public void run() {
+            // poll for new data
             try {
                 while (true) {
-                    ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
-                    for (ConsumerRecord record : records) {
-                        String valToPrint = "Key: " + record.key() +
-                                "\nValue: " + record.value() +
-                                "\nPartition: " + record.partition() +
-                                "\nOffset: " + record.offset();
-                        logger.info(valToPrint);
+                    ConsumerRecords<String, String> records =
+                            consumer.poll(Duration.ofMillis(100)); // new in Kafka 2.0.0
+
+                    for (ConsumerRecord<String, String> record : records) {
+                        logger.info("Key: " + record.key() + ", Value: " + record.value());
+                        logger.info("Partition: " + record.partition() + ", Offset:" + record.offset());
                     }
                 }
-            } catch (WakeupException wex) {
-                logger.info("Received shutdown signal");
+            } catch (WakeupException e) {
+                logger.info("Received shutdown signal!");
             } finally {
                 consumer.close();
+                // tell our main code we're done with the consumer
                 latch.countDown();
             }
         }
 
         public void shutdown() {
+            // the wakeup() method is a special method to interrupt consumer.poll()
+            // it will throw the exception WakeUpException
             consumer.wakeup();
         }
     }
