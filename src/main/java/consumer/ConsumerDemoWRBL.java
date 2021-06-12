@@ -9,43 +9,43 @@ import java.util.*;
 
 public class ConsumerDemoWRBL {
     // create consumer configs
-    private static Properties createConsumerConfiguration() {
+    private static Properties createConsumerConfiguration(String bsevers, String group) {
         Properties props = new Properties();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "skkvm.eastus.cloudapp.azure.com:9092");
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bsevers);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
                 StringDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                 StringDeserializer.class.getName());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "idegr");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, group);
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         return props;
     }
 
     // create consumer
     // create a consumer from configurations
-    private static KafkaConsumer<String, String> createKafkaConsumer() {
+    private static KafkaConsumer<String, String> createKafkaConsumer(String bservers, String group) {
         KafkaConsumer<String, String> consumer = new KafkaConsumer<String,
-                String>(createConsumerConfiguration());
+                String>(createConsumerConfiguration(bservers, group));
         return consumer;
     }
 
     public static void main(String[] args) {
         // subscribe to topic, add a rebalance listener
-        KafkaConsumer<String, String> consumer = createKafkaConsumer();
+        KafkaConsumer<String, String> consumer = createKafkaConsumer(args[0], args[1]);
         ReblanceListener reblanceListener = new ReblanceListener(consumer);
-        consumer.subscribe(Collections.singleton("idetopic2"), reblanceListener);
+        consumer.subscribe(Collections.singleton(args[2]), reblanceListener);
         // poll
         while(true){
             ConsumerRecords<String, String> records =
-                    consumer.poll(Duration.ofMillis(100));
+                    consumer.poll(Duration.ofMillis(Integer.parseInt(args[3])));
             if (records.count() > 0) {
                 for (ConsumerRecord<String, String> record : records) {
                     String recordVal = record.value().toUpperCase();
                     System.out.println("Record partition: " + record.partition() +
                             ", offset: " + record.offset() + ", value " +
                             "processed: " + recordVal);
-                    reblanceListener.addOffset("idetopic2", record.partition(), record.offset());
+                    reblanceListener.addOffset(args[2], record.partition(), record.offset());
                 }
 //                consumer.commitSync();
             }
