@@ -19,7 +19,7 @@ public class ConsumerDemoWithAdminClient {
     static String groupId = "idegr";
     static String topic = "ide_topic";
 
-    private static Properties createConsumerConfiguration() {
+    private static Properties createConsumerConfiguration(String bservers, String groupId) {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bservers);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
@@ -33,12 +33,12 @@ public class ConsumerDemoWithAdminClient {
     }
 
     // create a consumer from configurations
-    private static KafkaConsumer<String, String> createKafkaConsumer() {
+    private static KafkaConsumer<String, String> createKafkaConsumer(String bservers, String groupId) {
         KafkaConsumer<String, String> consumer = new KafkaConsumer<String,
-                String>(createConsumerConfiguration());
+                String>(createConsumerConfiguration(bservers, groupId));
         return consumer;
     }
-    private  static AdminClient createAdminClient(){
+    private  static AdminClient createAdminClient(String bservers){
         Properties adminProps = new Properties();
         adminProps.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bservers);
         adminProps.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, "10000");
@@ -48,7 +48,7 @@ public class ConsumerDemoWithAdminClient {
 
     private static Map<TopicPartition, OffsetAndMetadata> getGroupOffsets(String groupId)
             throws ExecutionException, InterruptedException {
-        AdminClient adminClient = createAdminClient();
+        AdminClient adminClient = createAdminClient(bservers);
         Map<TopicPartition, OffsetAndMetadata> groupOffsets =
                 adminClient.listConsumerGroupOffsets(groupId).partitionsToOffsetAndMetadata().get();
         return groupOffsets;
@@ -65,7 +65,7 @@ public class ConsumerDemoWithAdminClient {
         }
     }
 
-    private static void resetGroupOffsets(String groupId)
+    private static void resetGroupOffsets(String bservers, String groupId)
             throws ExecutionException, InterruptedException {
         Map<TopicPartition, OffsetAndMetadata> currentOffsets =
                 getGroupOffsets(groupId);
@@ -77,20 +77,21 @@ public class ConsumerDemoWithAdminClient {
         Map<TopicPartition, OffsetAndMetadata> newOffsets = new HashMap<>();
         currentOffsets.keySet().forEach(ks -> newOffsets.put(ks,
                 new OffsetAndMetadata(0)));
-        AdminClient adminClient = createAdminClient();
+        AdminClient adminClient = createAdminClient(bservers);
         adminClient.alterConsumerGroupOffsets(groupId, newOffsets);
     }
 
     public static void main(String[] args) throws ExecutionException, InterruptedException {
+        // args - 0 - bootstrap server, 1 - group id, 2 - topic
         System.out.println("printing the group offset details");
-        printGroupOffsets(groupId);
+        printGroupOffsets(args[1]);
 
-        resetGroupOffsets(groupId);
+        resetGroupOffsets(args[0], args[1]);
         System.out.println("printing the group offset details after resetting to new offsets");
         printGroupOffsets(groupId);
         // subscribe to topic, topics
-        KafkaConsumer<String, String> consumer = createKafkaConsumer();
-        consumer.subscribe(Collections.singleton(topic));
+        KafkaConsumer<String, String> consumer = createKafkaConsumer(args[0], args[1]);
+        consumer.subscribe(Collections.singleton(args[2]));
         try {
             while (true) {
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
