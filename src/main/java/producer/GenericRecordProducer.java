@@ -23,7 +23,7 @@ public class GenericRecordProducer {
                 "        {\"name\": \"first_name\", \"type\": \"string\",\"doc\": \"Customer first name\" },\n" +
                 "        {\"name\": \"last_name\", \"type\": \"string\",\"doc\": \"Customer last name\"},\n" +
                 "        {\"name\":\"age\", \"type\": \"int\",\"doc\":\"Age\"},\n" +
-                "        {\"name\":\"height\", \"type\": \"double\"},\n" +
+                "        {\"name\":\"height\", \"type\": \"float\"},\n" +
                 "        {\"name\":\"likes\", \"type\": {\"type\": \"array\", \"items\": \"string\", \"default\": []}}\n" +
                 "    ]\n" +
                 "}";
@@ -32,7 +32,7 @@ public class GenericRecordProducer {
         genericCustomerRecord.put("first_name", "john");
         genericCustomerRecord.put("last_name", "gulliver");
         genericCustomerRecord.put("age", 19);
-        genericCustomerRecord.put("height", 183.4);
+        genericCustomerRecord.put("height", 183.4f);
         List<String> likes = new ArrayList<>();
         likes.add("travelling");
         likes.add("preaching");
