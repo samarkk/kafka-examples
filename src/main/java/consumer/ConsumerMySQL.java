@@ -101,7 +101,6 @@ public class ConsumerMySQL {
         try {
             ConsumerMySQL consumerMySQL = new ConsumerMySQL();
             Connection connection = consumerMySQL.connectToMySQL(args[0], args[1]);
-            System.out.println(connection.toString());
 //        System.out.println(connection.isValid(1000));
             consumerMySQL.subscribeAndConsume(args[2], args[3], args[4], connection);
         } catch(Exception ex){
