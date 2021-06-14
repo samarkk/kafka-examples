@@ -5,7 +5,7 @@
      "version": "2",
      "fields": [
        { "name": "instrument", "type": "string", "doc": "Future or option broadly" },
-       { "name": "symobl", "type": "string", "doc": "Name of the stock traded" },
+       { "name": "symbol", "type": "string", "doc": "Name of the stock traded" },
        { "name": "expiry_dt", "type": "string", "doc": "Expiry date of contract" },
        { "name": "strike_pr", "type": "float", "doc": "Strike price for options, 0 for Futures" },
        { "name": "option_typ", "type": "string", "doc": "CE, PE, XX" },
