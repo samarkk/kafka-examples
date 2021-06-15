@@ -1,0 +1,97 @@
+* go to kafka_start.txt in setup and start zookeeper and kafka server
+* go to kafka-topics.txt and create the first topic
+* in kafka_start.txt explore visual tools for examinging zookeeper and kafkaserver through docker containers - checkout the section titled "start zoonavigator and kafka-manager tools using docker"
+* in the terminal explore kafka consumer groups - write to a topic, consume it from multiple consumers in one group, from multiple consumers in another group, add multiple producers, remove consumers and check the automatic partition assignment and decoupled, scalable nature of kafka producers and consumers
+* check out the producer demo - ProducerDemo.java
+* producer demo with keys - ProducerDemoKeysCallback.java
+* check out ConsumerDemo - ConsumerDemo.java
+* Consumer seek to an offset for a particular partition - ConsumerAssignAndSeek.java
+* Cleanup using wakeupException with Consumer running on a separate thread - ConsumerDemoWithThread.java
+* Admin client and checking, printing, resetting offsets - ConsumerDemoWithAdminClient.java
+* Reebalance listener called on partition assignment and revocation - ConsumerDemoWRBL.java
+* Send lines from a file to a Kafka topic - ProducerFileClient.java
+* Use twint to get tweets for a set of terms and route to a kafka topic - ProducerTweetsFileClient.java
+* Using Schema Registry to produce messages with a schema
+* Go to kafka-start.txt and start schema-registry and docker tools for schema registry
+* Create a Generic Record to a topic - GenericRecordProducer.java
+* check out schema-registry rest api
+# see the schemas
+curl 192.168.181.138:8081/subjects
+# see versions for a schema
+curl 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions
+# see the schema for a particular version
+curl 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions/1
+# Delete a schema version - first soft delete 
+curl -X DELETE 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions/1
+# Permanently delete a schema version
+curl -X DELETE 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions/1?permanent=true
+
+* use avro specific reocrds to populate topic with schemas
+* check pom.xml where we have avro-maven-plugin 
+* it will generate the java avro schemas for schemas in src/main/resources/avro folder
+* check out the customer.avsc 
+* use AvroProducer.Java to create a Kafka topic and record for the customer schema
+* in customer.avsc and AvroProducer.Java comment the version 1 code and check that we are able to work with version 2 to see avro schema evolution in action
+* user AvroProducerFileClient.java to load fo01JAN2918bhav.csv to nsefotopic_avro, use nseforec.avsc for the nse fo avro specific record
+
+# check and start cassandra 
+sudo systemctl status cassandra
+sudo systemctl start cassandra
+
+# creating a keyspace, a demo table and inserting some values
+# launch cqlsh
+CREATE KEYSPACE testks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+create table ttbl(sunsign text, id int, fname text, lname text, primary key ((sunsign, id)));
+insert into ttbl(sunsign, id, fname, lname) values ('libra', 1, 'amitabh', 'bacchan');
+insert into ttbl(sunsign, id, fname, lname) values ('libra', 2, 'hema', 'malini');
+
+# create finks - finance keyspace
+CREATE KEYSPACE finks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+# create fotable in finks
+CREATE TABLE finks.fotable (
+    symbol text,
+    expiry date,
+    trdate date,
+    instrument text,
+    option_typ text,
+    strike_pr decimal,
+    chgoi int,
+    contracts int,
+    cpr decimal,
+    oi int,
+    trdval decimal,
+    tstamp timestamp,
+   PRIMARY KEY ((symbol, expiry), trdate, instrument, option_typ, strike_pr)
+);
+# to connect to remote host
+set broadcast_rpc_address to public ip;
+for vm set it to the network adapter ip alotted
+set rpc_address to private ip - 10.0.0.4/5 etc;
+for vm set it to the ip gotten from network adapter
+set listen_address to localhost
+after this cqlsh will fail connecting to 127.0.0.1
+so use
+cqlsh myVM 9042
+where myVM is the hostname and 9042 is the port
+the private ip will also work
+the public ip also does
+so in vm use 
+cqlsh 192.168.181.138 9042
+
+run ConsumerCassandra.java to send messages from kafka nsefotopic to cassandra fotbl
+
+
+# mysql sink 
+# follow the steps in fotbl_mysql_create.sql to create set up for sending nsefotopic to mysql
+# run ConsumerMySQL.java to send the topic messages to mysql
+
+# set up for sending data to hdfs sink
+# go to hadoop conf directory
+cd /home/samar/hadoop/etc/hadoop
+# replace localhost with ip of vm
+sed -i s/localhost/<vm ip>/g core-site.xml
+sed -i s/localhost/<vm ip>/g hdfs-site.xml
+# start hdfs daemons
+hdfs --daemon start namenode
+hdfs --daemon start datanode
+# run ConsumerHDFSSink.java to send nsefotopic messages to hdfs
