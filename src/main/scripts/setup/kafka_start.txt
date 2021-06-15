@@ -1,22 +1,73 @@
-# create the zookeeper directory
-mkdir /home/samar/zookeeper
-# change the data directory configuration for zookeeper
-# in /usr/lib/confluent/etc/kafka change the data directory for zookeeper
-# dataDir=/home/samar/zookeeper
+# start zookeeper and check the logs emitted to the console
+zookeeper-server-start /home/samar/confluent/etc/kafka/zookeeper.properties
 
-# start zookeeper
-zookeeper-server-start -daemon /usr/lib/confluent/etc/kafka/zookeeper.properties
+# stop it - Ctrl+c and start it as a backgroud daemon process
+zookeeper-server-start -daemon /home/samar/confluent/etc/kafka/zookeeper.properties
+
 # verify port 2181 occupied
+# tlpg is only a synonym for sudo netstat -tulpn | grep 
 tlpg 2181
+
+# the logs are in the logs directory under confluent
+ls -l /home/samar/confluent/logs
+# we can check the logs - last two hundred lines, tail continuously to fix problems and generally see what's going on
+tail -n 200 /home/samar/confluent/logs/zookeeper.out
+tail -f /home/samar/confluent/logs/zookeeper.out
+
 # zookeeper-shell localhost:2181
 # ls / 
 # we shall see brokers, topics as they are created
-# create the kafka directory /home/samar/kafka/logs1
-# change the log.dirs setting in server.properties to this setting
-# log.dirs=/home/samar/kafka/logs1
+
+# start kafka server
+# check out the server.properties file in the kafka configuration directory
+less /home/samar/confluent/etc/kafka/server.properties
 # broker.id has to be different for each broker
 # same zookeeper.connect will make different brokers part of a cluster
 
-# start kafka server
-kafka-server-start -daemon /usr/lib/confluent/etc/kafka/server.properties
+# set the default number of partitions to three in server.properties
+vim /home/samar/confluent/etc/kafka/server.properties
 
+# start kafka-server in the foregroud
+kafka-server-start  /home/samar/confluent/etc/kafka/server.properties
+
+# stop and start as a daemon
+kafka-server-start -daemon /home/samar/confluent/etc/kafka/server.properties
+# verify port 9092 occupied
+tlpg 9092
+# logs will be in /home/samar/confluent/logs in server.log
+tail -f /home/samar/confluent/logs/server.log
+
+# check out the broker node in the zookeeper shell
+
+################################################################
+start zoonavigator and kafka-manager tools using docker
+################################################################
+# start docker 
+sudo systemctl start docker
+# check docker service status
+sudo systemctl status docker
+
+# zoonavigator to check out zookeeper
+docker run -d -p 9001:9000 --name zoonavigator elkozmon/zoonavigator
+# note - have to connect to ip:2181, localhost:2181 or 127.0.0.1:2181 does not work
+# kafka manager to check out the kafka cluster
+# set the advertised listeners to the ip of the virtual machine
+# make a backup copy of server.properties
+cp /home/samar/confluent/etc/kafka/server.properties /home/samar/confluent/etc/kafka/server.properties.backup
+
+vim /home/samar/confluent/etc/kafka/server.properties
+change #advertised.listeners=PLAINTEXT://your.host.name:9092 to advertised.listeners=PLAINTEXT://192.168.181.138:9092 - use the ip for your virtual machine
+
+docker run -d -p 9000:9000 -e ZK_HOSTS="192.168.181.138:2181" hlebalbau/kafka-manager:stable
+
+# go to ipaddress_of_vm:9000
+# click on cluster -> add
+# provide zookeeper address as ipaddress_of_vm:2181 and save
+
+################################################################
+start schema-registry and docker schema registry container
+################################################################
+# start schema-registry
+schema-registry-start -daemon /home/samar/confluent/etc/schema-registry/schema-registry.properties
+
+docker run -d -p 8002:8000 -e "SCHEMAREGISTRY_URL=http://192.168.181.138:8081" -e "PROXY=true" landoop/schema-registry-ui
