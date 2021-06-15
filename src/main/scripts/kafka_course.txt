@@ -1,7 +1,8 @@
 * go to kafka_start.txt in setup and start zookeeper and kafka server
 * go to kafka-topics.txt and create the first topic
 * in kafka_start.txt explore visual tools for examinging zookeeper and kafkaserver through docker containers - checkout the section titled "start zoonavigator and kafka-manager tools using docker"
-* in the terminal explore kafka consumer groups - write to a topic, consume it from multiple consumers in one group, from multiple consumers in another group, add multiple producers, remove consumers and check the automatic partition assignment and decoupled, scalable nature of kafka producers and consumers
+* in the terminal explore kafka consumer groups - write to a topic, consume it from multiple consumers in one group, from multiple consumers in another group, add multiple producers, remove consumers and check the automatic partition assignment and decoupled, 
+scalable nature of kafka producers and consumers
 * check out the producer demo - ProducerDemo.java
 * producer demo with keys - ProducerDemoKeysCallback.java
 * check out ConsumerDemo - ConsumerDemo.java
