@@ -1,0 +1,51 @@
+A node is an instance of Elasticsearch that stores data
+Possible to run as many nodes as we want on a single machine
+Each node will store a part of data
+Each node belongs to a cluster
+A cluster is a collection of related nodes
+objects sent to elasticsearch are stored in indices with metadata added on
+An index is a collection of documents that are logically related
+using kibana, leading forward slash is not required - kibana will add it automatically
+Sharding is a way to divide indices into smaller pieces
+Each piece is referred to as a shard
+Sharding is done at the index level
+A shard is an independent index.. kind of
+Each shard is an Apache Lucene index
+An elasticsearch index contains of one or more Lucene indices
+A shard has no preferred size; it grows as documents are added to it
+A shard may store up to two billion documents
+Sharding enables parallelization and improved performance
+An index contains a single shard by default
+Up till 7.0.0 5 shards were created by default
+There is Split API to increase shards and Shrink API to decrease shards
+No formula for optimal number of shards
+
+Replication is configured at the index level
+A shard that has been replicated is called a primary shard
+A primary shard and its replicas are called a replication group
+Replica shards are never stored on the same node as the primary shard
+
+Elasticsearch supports taking snapshots as backups
+Snapshots can be used to restore to a point in time
+
+Replica shards can help increase throughput
+Replica shards of a replication group can serve different search requests simultaneously
+
+To add a node to elasticsearch in development machine all we have to do is to copy the elasticsearch directory and change the node-name in config/elasticsearch.yml
+
+We can also start from the command line as 
+bin/elasticsearch -Enode-name=<node-name> -Epath.data=<directory> -Epath.log=<directory>
+separate directory is better
+
+There is a master-eligible node role
+A node having a master-eligible does not automatically get selected as a master
+There is the data role
+In large cluster we may have dedicated master role
+Node may also be given dedicated data role to keep master and data nodes separate
+Ingest role similar to ETL tasks in databases
+Ingest nodes run pipelines to filter, transform, embellish data
+node.ml identifies node as a machine learning node
+xpack.ml.enabled enables or disables machine learning API for the node
+coordination role
+
+
