@@ -1,0 +1,89 @@
+# see the cluster details
+GET /_cluster/health
+# to see the nodes
+GET /_cat/nodes?v
+# see the json details on nodes
+GET /_nodes
+# indices information - for kibana indices are stored in the elasticsearch 
+GET /_indices
+GET /_cat/indices?v
+
+# Create a document
+PUT /products
+{
+  "settings": {
+    "number_of_shards": 2,
+    "number_of_replicas": 2
+  }
+}
+
+curl -XPUT "http://localhost:9200/products" -H 'Content-Type: application/json' -d'{  "settings": {    "number_of_shards": 2,    "number_of_replicas": 2  }}'
+
+# delete a document
+DELETE /products
+curl -XDELETE "http://localhost:9200/products"
+
+
+# putting / indexing a document
+POST /products/_doc
+{
+  "name": "Coffee Maker",
+  "price": 64,
+  "in_stock": 10
+}
+
+curl -XPOST "http://localhost:9200/products/_doc" -H 'Content-Type: application/json' -d'{  "name": "Coffee Maker",  "price": 64,  "in_stock": 10}'
+
+
+curl -XPOST "http://localhost:9200/products/_doc" -H 'Content-Type: application/json' -d'{  "name": "Coffee Maker",  "price": 64,  "in_stock": 10}'
+
+# putting, indexing multiple documents
+
+POST /_bulk
+{ "index": { "_index": "products", "_id": 200 } }
+{ "name": "Espresso Machine", "price": 199, "in_stock": 5 }
+{ "create": { "_index": "products", "_id": 201 } }
+{ "name": "Milk Frother", "price": 149, "in_stock": 14 }
+
+curl -XPOST "http://localhost:9200/_bulk" -H 'Content-Type: application/json' -d'{ "index": { "_index": "products", "_id": 200 } }{ "name": "Espresso Machine", "price": 199, "in_stock": 5 }\n{ "create": { "_index": "products", "_id": 201 } }{ "name": "Milk Frother", "price": 149, "in_stock": 14 }'
+
+
+# retrieve documents 
+GET /products/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+curl -XGET "http://localhost:9200/products/_search" -H 'Content-Type: application/json' -d'{  "query": {    "match_all": {}  }}'
+
+# query for price
+GET /products/_search
+{
+  "query": {
+   "range": {
+     "price": {
+       "gte": 150,
+       "lte": 200
+     }
+   }
+  }
+}
+
+curl -XGET "http://localhost:9200/products/_search" -H 'Content-Type: application/json' -d'{  "query": {   "range": {     "price": {       "gte": 150,       "lte": 200     }   }  }}'
+
+# delete document
+DELETE /products/_doc/101
+curl -XDELETE "http://localhost:9200/products/_doc/101"
+
+# delete index 
+curl -XDELETE "http://localhost:9200/products"
+
+show tables;
+show tables like 't%';
+describe tweets;
+show columns in tweets;
+select user_id,link,likes_count, tweet from tweets where likes_count > 1000;
+select user_id,link,likes_count, tweet from tweets where likes_count > 1000
+order by likes_count desc;
