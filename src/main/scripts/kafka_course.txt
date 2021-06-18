@@ -1,21 +1,157 @@
 * go to kafka_start.txt in setup and start zookeeper and kafka server
-* go to kafka-topics.txt in kafka-cli and create the first topic
-* in kafka_start.txt explore visual tools for examinging zookeeper and kafkaserver through docker containers - checkout the section titled "start zoonavigator and kafka-manager tools using docker"
-* in the terminal explore kafka consumer groups - write to a topic, consume it from multiple consumers in one group, from multiple consumers in another group, add multiple producers, remove consumers and check the automatic partition assignment and decoupled, 
-scalable nature of kafka producers and consumers
+########################################################################
+start zookeeper and kafka server
+########################################################################
+
+# start zookeeper and check the logs emitted to the console
+zookeeper-server-start /home/samar/confluent/etc/kafka/zookeeper.properties
+
+# stop it - Ctrl+c and start it as a backgroud daemon process
+zookeeper-server-start -daemon /home/samar/confluent/etc/kafka/zookeeper.properties
+
+# verify port 2181 occupied
+# tlpg is only a synonym for sudo netstat -tulpn | grep 
+tlpg 2181
+
+# the logs are in the logs directory under confluent
+ls -l /home/samar/confluent/logs
+# we can check the logs - last two hundred lines, tail continuously to fix problems and generally see what's going on
+tail -n 200 /home/samar/confluent/logs/zookeeper.out
+tail -f /home/samar/confluent/logs/zookeeper.out
+
+# zookeeper-shell localhost:2181
+# ls / 
+# we shall see brokers, topics as they are created
+
+# start kafka server
+# check out the server.properties file in the kafka configuration directory
+less /home/samar/confluent/etc/kafka/server.properties
+# broker.id has to be different for each broker
+# same zookeeper.connect will make different brokers part of a cluster
+
+# set the default number of partitions to three in server.properties
+vim /home/samar/confluent/etc/kafka/server.properties
+
+# start kafka-server in the foregroud
+kafka-server-start  /home/samar/confluent/etc/kafka/server.properties
+
+# stop and start as a daemon
+kafka-server-start -daemon /home/samar/confluent/etc/kafka/server.properties
+# verify port 9092 occupied
+tlpg 9092
+# logs will be in /home/samar/confluent/logs in server.log
+tail -f /home/samar/confluent/logs/server.log
+
+# check out the broker node in the zookeeper shell
+
+-----------------------------------------------------------------------
+
+########################################################################
+create, delete, topics
+########################################################################
+kafka-topics --zookeeper localhost:2181 --list
+
+kafka-topics --zookeeper localhost:2181 --create --topic first_topic --partitions 3 --replication-factor 1
+
+kafka-topics --zookeeper localhost:2181 --topic first_topic --describe
+
+kafka-topics --zookeeper localhost:2181 --topic --delete first_topic
+
+########################################################################
+tmux elementary commands and navigation
+########################################################################
+Ctrl+b " - split window into two panes horizontally
+Ctrl+b % - split window into two panes vertically
+Ctrl+b Ctrl+ArrowKey - resize in direction of arrow
+Ctrl+b ArrowKey - move to the pane in direction of arrow
+Ctrl+b o - move cursor to other pane
+Ctrl+b q + pane-number - move to the numbered pane
+
+########################################################################
+ check the kafka console consumer and kafka console producer in action
+########################################################################
+tmux and createt two panes
+in one pane
+kafka-console-producer --bootstrap-server localhost:9092 --topic first_topic
+in other pane
+kafka-console-consumer --bootstrap-server localhost:9092 --topic first_topic
+in the producer pane, type in stuff and see it appearing alongside in the consumer pane
+
+########################################################################
+explore visual tools for examinging zookeeper and kafkaserver through 
+docker containers
+########################################################################
+# start docker 
+sudo systemctl start docker
+# check docker service status
+sudo systemctl status docker
+
+# zoonavigator to check out zookeeper
+docker run -d -p 9001:9000 --name zoonavigator elkozmon/zoonavigator
+# note - have to connect to ip:2181, localhost:2181 or 127.0.0.1:2181 does not work
+# kafka manager to check out the kafka cluster
+# set the advertised listeners to the ip of the virtual machine
+# make a backup copy of server.properties
+cp /home/samar/confluent/etc/kafka/server.properties /home/samar/confluent/etc/kafka/server.properties.backup
+
+vim /home/samar/confluent/etc/kafka/server.properties
+change #advertised.listeners=PLAINTEXT://your.host.name:9092 to advertised.listeners=PLAINTEXT://192.168.181.138:9092 - use the ip for your virtual machine
+
+docker run -d -p 9000:9000 -e ZK_HOSTS="192.168.181.138:2181" hlebalbau/kafka-manager:stable
+
+# go to ipaddress_of_vm:9000
+# click on cluster -> add
+# provide zookeeper address as ipaddress_of_vm:2181 and save
+
+########################################################################
+explore kafka consumer groups
+########################################################################
+# set up tmux to have producer in one pane and three consumers, 
+part of a consumer group, one each in a different pane
+# start producer to write to a topic
+kafka-console-producer --topic first_topic --bootstrap-server localhost:9092
+# one by one start a consumer in a group
+kafka-console-consumer --bootstrap-server localhost:9092 --topic first_topic --group firstgroup --from-beginning
+# set up three more panes and start three more consumers to consume the
+topic 
+kafka-console-consumer --bootstrap-server localhost:9092 --topic first_topic --group secondgroup --from-beginning
+# divide the producer pane into two and start another producer to write to the same topic
+# shut down all and now explore producer and consumer in consumer groups
+with messages produced with a key
+kafka-console-producer --bootstrap-server localhost:9092 --topic key-topic --property parse.key=true --property key.separator=, --property ignore.errors=true
+# start three consumers 
+kafka-console-consumer --bootstrap-server localhost:9092 --topic key-topic --property print.key=true --from-beginning
+
+########################################################################
+ Java producer and consumer API
+########################################################################
 * check out the producer demo - ProducerDemo.java
 * producer demo with keys - ProducerDemoKeysCallback.java
+
 * check out ConsumerDemo - ConsumerDemo.java
 * Consumer seek to an offset for a particular partition - ConsumerAssignAndSeek.java
 * Cleanup using wakeupException with Consumer running on a separate thread - ConsumerDemoWithThread.java
 * Admin client and checking, printing, resetting offsets - ConsumerDemoWithAdminClient.java
 * Reebalance listener called on partition assignment and revocation - ConsumerDemoWRBL.java
+
 * Send lines from a file to a Kafka topic - ProducerFileClient.java
 * Use twint to get tweets for a set of terms and route to a kafka topic - ProducerTweetsFileClient.java
+* twint fix in machine
+pip3 uninstall twint
+pip3 install --user --upgrade git+https://github.com/twintproject/twint.git@origin/master#egg=twint
+
 * Using Schema Registry to produce messages with a schema
-* Go to kafka-start.txt and start schema-registry and docker tools for schema registry
+################################################################
+start schema-registry and docker schema registry container
+################################################################
+# start schema-registry
+schema-registry-start -daemon /home/samar/confluent/etc/schema-registry/schema-registry.properties
+
+docker run -d -p 8002:8000 -e "SCHEMAREGISTRY_URL=http://192.168.181.138:8081" -e "PROXY=true" landoop/schema-registry-ui
+
 * Create a Generic Record to a topic - GenericRecordProducer.java
 * check out schema-registry rest api
+
 # see the schemas
 curl 192.168.181.138:8081/subjects
 # see versions for a schema
@@ -34,6 +170,11 @@ curl -X DELETE 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/v
 * use AvroProducer.Java to create a Kafka topic and record for the customer schema
 * in customer.avsc and AvroProducer.Java comment the version 1 code and check that we are able to work with version 2 to see avro schema evolution in action
 * user AvroProducerFileClient.java to load fo01JAN2918bhav.csv to nsefotopic_avro, use nseforec.avsc for the nse fo avro specific record
+
+
+################################################################
+set up Cassandra and use it as the sink with the consumer API
+################################################################
 
 # check and start cassandra 
 sudo systemctl status cassandra
@@ -81,6 +222,9 @@ cqlsh 192.168.181.138 9042
 
 run ConsumerCassandra.java to send messages from kafka nsefotopic to cassandra fotbl
 
+################################################################
+MySQL sink with the consumer API
+################################################################
 
 # mysql sink 
 # follow the steps in fotbl_mysql_create.sql to create set up for sending nsefotopic to mysql
@@ -96,3 +240,87 @@ sed -i s/localhost/<vm ip>/g hdfs-site.xml
 hdfs --daemon start namenode
 hdfs --daemon start datanode
 # run ConsumerHDFSSink.java to send nsefotopic messages to hdfs
+
+
+###################################################################
+elastic search consumer - setting up elasticsearch and kibana
+###################################################################
+# to be able to connect to elasticsearch from host/remote machine make the following changes in /home/samar/elasticsearch/config/elasticsearch.yml
+network.host: localhost
+http.host: 0.0.0.0
+
+# start elasticsearch as a daemon
+/home/samar/elasticsearch/bin/elasticsearch -d
+# verify elasticsearch started
+tlpg 9200
+# download kibana
+cd ~
+# verify in /home/samar
+pwd
+curl -O https://artifacts.elastic.co/downloads/kibana/kibana-7.11.2-linux-x86_64.tar.gz
+tar xvzf kibana-7.11.2-linux-x86_64.tar.gz -C ~
+ln -s /home/samar/kibana-7.11.2-linux-x86 /home/samar/kibana
+
+in /home/samar/kibana/config/kibana.yml  - set server.host to the ip of the vm to be able to connect to the kibana site from the host machine
+
+start the kibana server
+kibana/bin/kibana
+
+check out basic information about elasticsearch from es_commands.txt and es_notes.txt
+
+Run ElasticsearchConsumer.java to consume topics from tweets topic into elasticsearch
+
+###################################################################
+start multiple brokres for the cluster
+###################################################################
+go to /home/samar/confluent/etc/kafka/
+copy server.properties to server1.properties
+in server1.properties change broker.id to 1 
+and replace 9092 with 9093
+uncomment the two lines below and change 8090 to 8091
+#confluent.metadata.server.listeners=http://0.0.0.0:8090
+#confluent.metadata.server.advertised.listeners=http://127.0.0.1:8090
+
+start kafka server 2 
+replicate with server2.properties, port 9094 and 8092 and start kafka server 3
+
+start docker kafka server and check the three servers active
+
+##################################################################
+check topic configurations
+##################################################################
+# see the options
+kafka-configs
+
+# create a test_config_topic to check out configurations
+kafka-topics --zookeeper localhost:2181 --create --topic test_config_topic --partitions 3 --replication-factor 1
+
+# describe configs for topic
+kafka-configs --bootstrap-server localhost:9092 --entity-type topics --entity-name test_config_topic --describe
+
+# add a configuration
+kafka-configs --bootstrap-server localhost:9092 --entity-type topics --entity-name test_config_topic  --add-config min.insync.replicas=2 --alter
+
+# check the configuration
+kafka-configs --bootstrap-server localhost:9092 --entity-type topics --entity-name test_config_topic --describe
+
+# see configurations using kafka-topics
+kafka-topics --zookeeper localhost:2181 --topic test_config_topic --describe
+
+# delete configuration
+kafka-configs --bootstrap-server localhost:9092 --entity-type topics --entity-name test_config_topic  --delete-config min.insync.replicas --alter
+
+# verify config deleted
+kafka-topics --zookeeper localhost:2181 --topic test_config_topic --describe
+
+# delete the topic
+kafka-topics --zookeeper localhost:2181 --delete --topic test_config_topic
+
+######################################################################
+log compaction check out
+######################################################################
+kafka-topics --zookeeper localhost:2181 --create --topic shippinig_address --partitions 1 --replication-factor 1 --config cleanup.policy=compact --config min.cleanable.dirty.ratio=0.001 --config segment.ms=5000
+
+kafka-console-producer --broker-list localhost:9092 --topic shippinig_address --property parse.key=true --property key.separator=,
+
+kafka-console-consumer --bootstrap-server localhost:9092 --topic shippinig_address --property print.key=true --property key.separator=,
