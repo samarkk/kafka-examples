@@ -14,26 +14,12 @@ public class CustomerSerializer implements Serializer<Customer> {
 
     }
 
-    //    public byte[] serialize(String topic, Customer customer) {
-//        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-//        byte[] bytes = null;
-//        try {
-//            ObjectOutputStream oos = new ObjectOutputStream(bos);
-//            oos.writeObject(customer);
-//            oos.flush();
-//            bytes = bos.toByteArray();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        return bytes;
-//    }
     public byte[] serialize(String topic, Customer data) {
         byte[] retVal = null;
         ObjectMapper mapper = new ObjectMapper();
         try {
 
             retVal = mapper.writeValueAsString(data).getBytes();
-//            retVal = mapper.writeValueAsBytes(data);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
