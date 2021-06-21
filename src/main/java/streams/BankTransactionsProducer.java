@@ -27,7 +27,7 @@ public class BankTransactionsProducer {
         // leverage idempotent producer from Kafka 0.11 !
         properties.setProperty(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true"); // ensure we don't push duplicates
 
-        Producer<String, String> producer = new KafkaProducer<>(properties);
+        KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
 
         int i = 0;
         while (true) {
