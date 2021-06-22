@@ -140,37 +140,6 @@ kafka-console-consumer --bootstrap-server localhost:9092 --topic key-topic --pro
 pip3 uninstall twint
 pip3 install --user --upgrade git+https://github.com/twintproject/twint.git@origin/master#egg=twint
 
-* Using Schema Registry to produce messages with a schema
-################################################################
-start schema-registry and docker schema registry container
-################################################################
-# start schema-registry
-schema-registry-start -daemon /home/samar/confluent/etc/schema-registry/schema-registry.properties
-
-docker run -d -p 8002:8000 -e "SCHEMAREGISTRY_URL=http://192.168.181.138:8081" -e "PROXY=true" landoop/schema-registry-ui
-
-* Create a Generic Record to a topic - GenericRecordProducer.java
-* check out schema-registry rest api
-
-# see the schemas
-curl 192.168.181.138:8081/subjects
-# see versions for a schema
-curl 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions
-# see the schema for a particular version
-curl 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions/1
-# Delete a schema version - first soft delete 
-curl -X DELETE 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions/1
-# Permanently delete a schema version
-curl -X DELETE 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions/1?permanent=true
-
-* use avro specific reocrds to populate topic with schemas
-* check pom.xml where we have avro-maven-plugin 
-* it will generate the java avro schemas for schemas in src/main/resources/avro folder
-* check out the customer.avsc 
-* use AvroProducer.Java to create a Kafka topic and record for the customer schema
-* in customer.avsc and AvroProducer.Java comment the version 1 code and check that we are able to work with version 2 to see avro schema evolution in action
-* user AvroProducerFileClient.java to load fo01JAN2918bhav.csv to nsefotopic_avro, use nseforec.avsc for the nse fo avro specific record
-
 
 ################################################################
 set up Cassandra and use it as the sink with the consumer API
@@ -240,7 +209,10 @@ sed -i s/localhost/<vm ip>/g hdfs-site.xml
 hdfs --daemon start namenode
 hdfs --daemon start datanode
 # run ConsumerHDFSSink.java to send nsefotopic messages to hdfs
-
+# one may get hadoop_home not set in windows, winutils may not be installed
+# worked after giving hadoop home not set error
+# one solution is to package the jar, add hadoop classpath and run the class
+# or on the windows machine download winutils and set hadoop home
 
 ###################################################################
 elastic search consumer - setting up elasticsearch and kibana
@@ -269,6 +241,37 @@ kibana/bin/kibana
 check out basic information about elasticsearch from es_commands.txt and es_notes.txt
 
 Run ElasticsearchConsumer.java to consume topics from tweets topic into elasticsearch
+
+* Using Schema Registry to produce messages with a schema
+################################################################
+start schema-registry and docker schema registry container
+################################################################
+# start schema-registry
+schema-registry-start -daemon /home/samar/confluent/etc/schema-registry/schema-registry.properties
+
+docker run -d -p 8002:8000 -e "SCHEMAREGISTRY_URL=http://192.168.181.138:8081" -e "PROXY=true" landoop/schema-registry-ui
+
+* Create a Generic Record to a topic - GenericRecordProducer.java
+* check out schema-registry rest api
+
+# see the schemas
+curl 192.168.181.138:8081/subjects
+# see versions for a schema
+curl 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions
+# see the schema for a particular version
+curl 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions/1
+# Delete a schema version - first soft delete 
+curl -X DELETE 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions/1
+# Permanently delete a schema version
+curl -X DELETE 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions/1?permanent=true
+
+* use avro specific reocrds to populate topic with schemas
+* check pom.xml where we have avro-maven-plugin 
+* it will generate the java avro schemas for schemas in src/main/resources/avro folder
+* check out the customer.avsc 
+* use AvroProducer.Java to create a Kafka topic and record for the customer schema
+* in customer.avsc and AvroProducer.Java comment the version 1 code and check that we are able to work with version 2 to see avro schema evolution in action
+* user AvroProducerFileClient.java to load fo01JAN2918bhav.csv to nsefotopic_avro, use nseforec.avsc for the nse fo avro specific record
 
 ###################################################################
 start multiple brokres for the cluster
@@ -324,3 +327,132 @@ kafka-topics --zookeeper localhost:2181 --create --topic shippinig_address --par
 kafka-console-producer --broker-list localhost:9092 --topic shippinig_address --property parse.key=true --property key.separator=,
 
 kafka-console-consumer --bootstrap-server localhost:9092 --topic shippinig_address --property print.key=true --property key.separator=,
+
+######################################################################
+Kafka mirror maker 
+######################################################################
+copy zookeeper.properties to zookeeper1.properties and change port to 2182
+create a different directory /tmp/zookeeper1 and in zookeeper1.properties set dataDir=/tmp/zookeeper1
+start the new zookeeper
+zookeeper-server-start -daemon /home/samar/confluent/etc/kafka/zookeeper1.properties
+
+copy server.properties to server-cl2.properties
+make a new directory /tmp/kafka-logs1
+in /home/samar/confluent/etc/kafka/server-cl2.properties
+change port 9092 to 9095 for listeners and advertised listeners
+change port 8090 to 8095 for 
+confluent.metadata.server.listeners and 
+confluent.metadata.server.advertised.listeners
+start the new cluster broker
+kafka-server-start -daemon /home/samar/confluent/etc/server-cl2.properties
+
+in consumer.properties  add auto.offset.reset=earliest and group.id=test-consumer-group
+
+in producer.properties set bootstrap.servers=localhost:9095
+
+in one pane
+kafka-mirror-maker --consumer.config  consumer.properties --producer.config producer.properties --new.consumer --num.streams=2 --whitelist ".*"
+in another one
+kafka-console-producer --bootstrap-server localhost:9092 --topic first_topic
+in another one 
+kafka-console-consumer --bootstrap-server localhost:9092 --topic first_topic
+in another one
+kafka-console-consumer --bootstrap-server localhost:9095 --topic first_topic
+
+in the kafka-server ui tool add zookeeper hosts as vimip:2181 and vmip:2182 as zookeeper hosts
+
+add the new cluster  and see the topics getting replicated
+
+######################################################################
+Kafka streams
+######################################################################
+run WordCountApp.java to check basic kafka streams topology
+run kafka console producer on the input topic and kafka console consumer on the output topic simultaneously
+
+run WordCountTWApp.java to check window operations
+run kafka console producer and consumer on input and output topics simultaneously
+
+######################################################################
+Streams Streams Join
+######################################################################
+create topics - impressions, clicks, impressionsandclicks
+
+kafka-topics --zookeeper localhost:2181 --create --topic impressions --partitions 3 --replication-factor 1
+kafka-topics --zookeeper localhost:2181 --create --topic clicks --partitions 3 --replication-factor 1
+kafka-topics --zookeeper localhost:2181 --create --topic impressionsandclicks --partitions 3 --replication-factor 1
+
+run kafka console consumer for each of the three topics
+
+and run StreamStreamJoinDemo.java
+
+######################################################################
+Streams Table Join
+######################################################################
+create topics user-regions, user-clicks and user-clicks-regions
+
+kafka-topics --zookeeper localhost:2181 --create --topic user-regions --partitions 3 --replication-factor 1
+kafka-topics --zookeeper localhost:2181 --create --topic user-clicks --partitions 3 --replication-factor 1
+kafka-topics --zookeeper localhost:2181 --create --topic user-clicks-regions --partitions 3 --replication-factor 1
+
+run kafka console consumer for each of the three topics
+
+run StreamTableJoinDemo.java and then StreamTableJoinDriver.Demo
+
+##################################################################
+Table Table Join 
+##################################################################
+create topics - player-team, player-score, player-team-score
+
+kafka-topics --zookeeper localhost:2181 --create --topic player-team -partitions 3 --replication-factor 1
+kafka-topics --zookeeper localhost:2181 --create --topic player-score --partitions 3 --replication-factor 1
+kafka-topics --zookeeper localhost:2181 --create --topic player-team-score --partitions 3 --replication-factor 1
+
+Run TableTableJoin.java
+
+##################################################################
+Stream Globak KTable Join 
+##################################################################
+create topics userp and usert   --purchases and table
+
+kafka-topics --zookeeper localhost:2181 --create --topic userp -partitions 3 --replication-factor 1
+
+kafka-topics --zookeeper localhost:2181 --create --topic usert -partitions 3 --replication-factor 1
+
+create topic upej - user purchase enrichment join
+kafka-topics --zookeeper localhost:2181 --create --topic upej -partitions 3 --replication-factor 1
+
+run UEE.java // UserEventEnrichment.java
+run UserDataProducer.java
+
+consume topic upej and check
+
+##################################################################
+Streams branching
+#################################################################
+create topics nsefotopic_avro and gr-1mn and lakh-to-mn and upto1lakh
+
+kafka-topics --zookeeper localhost:2181 --create --topic nsefotopic_avro -partitions 3 --replication-factor 1
+
+kafka-topics --zookeeper localhost:2181 --create --topic gr-1mn -partitions 3 --replication-factor 1
+
+kafka-topics --zookeeper localhost:2181 --create --topic lakh-to-mn -partitions 3 --replication-factor 1
+
+kafka-topics --zookeeper localhost:2181 --create --topic upto1lakh -partitions 3 --replication-factor 1
+
+run AvroProducerFileClient.java to populate nsefotopic_avro
+and kafka console consumer for the it plus the three branch topics
+
+
+##################################################################
+Streaming exactly once app
+##################################################################
+create topics bank-transactions and bank-balance-exactly-once
+
+kafka-topics --zookeeper localhost:2181 --create --topic bank-trasactions -partitions 3 --replication-factor 1
+kafka-topics --zookeeper localhost:2181 --create --topic bank-balance-exactly-once -partitions 3 --replication-factor 1
+
+run BankBalanceExactlyOnceApp.java
+run BankTransactionsProducer.java
+
+check the bank-balance-exactly-once topic
+kafka-console-consumer --bootstrap-server localhost:9092 --topic bank-balance-exactly-once --property print.key=true
