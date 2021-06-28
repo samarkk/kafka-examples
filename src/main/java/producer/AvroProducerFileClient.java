@@ -76,7 +76,7 @@ public class AvroProducerFileClient {
         String[] colVals = line.split(",");
         Nseforec nserec = Nseforec.newBuilder()
                 .setInstrument(colVals[0])
-                .setSymobl(colVals[1])
+                .setSymbol(colVals[1])
                 .setExpiryDt(colVals[2])
                 .setStrikePr(Float.parseFloat(colVals[3]))
                 .setOptionTyp(colVals[4])
