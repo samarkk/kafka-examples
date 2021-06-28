@@ -16,7 +16,7 @@ public class StreamTableJoinDemo {
         String appName = args[1];
         String userRegionTopic = "user-regions";
         String userClicksTopic = "user-clicks";
-        String outputTopic = "user-clicks-region";
+        String outputTopic = "user-clicks-regions";
         // create prperties
         Properties streamProps = new Properties();
         streamProps.put(StreamsConfig.APPLICATION_ID_CONFIG, appName);
