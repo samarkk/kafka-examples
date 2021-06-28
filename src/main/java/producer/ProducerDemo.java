@@ -38,7 +38,7 @@ public class ProducerDemo {
                         producer.send(prec, new Callback() {
                             @Override
                             public void onCompletion(RecordMetadata metadata, Exception exception) {
-                                System.out.println("callback received at " + utils.RoughWork.getCurrentTime());
+                                System.out.println("callback received at " + getCurrentTime());
                             }
                         }));
             }
