@@ -45,14 +45,5 @@ public class StreamStreamJoinDemo {
 
         Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
 
-//        Runtime.getRuntime().addShutdownHook(new Thread(() -> streams.close()));
-//        while (true) {
-//            try {
-//                Thread.sleep(100);
-//            } catch (InterruptedException iex) {
-//                iex.printStackTrace();
-//            }
-//        }
-
     }
 }
