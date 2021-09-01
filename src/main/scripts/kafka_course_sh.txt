@@ -1,0 +1,470 @@
+* go to kafka_start.txt in setup and start zookeeper and kafka server
+########################################################################
+start zookeeper and kafka server
+########################################################################
+
+# start zookeeper and check the logs emitted to the console
+zookeeper-server-start.sh /home/vagrant/kafka/config/zookeeper.properties
+
+# stop it - Ctrl+c and start it as a backgroud daemon process
+zookeeper-server-start.sh -daemon /home/vagrant/kafka/config/zookeeper.properties
+
+# verify port 2181 occupied
+# tlpg is only a synonym for sudo netstat -tulpn | grep 
+tlpg 2181
+
+# the logs are in the logs directory under confluent
+ls -l /home/vagrant/kafka/logs
+# we can check the logs - last two hundred lines, tail continuously to fix problems and generally see what's going on
+tail -n 200 /home/vagrant/kafka/logs/zookeeper.out
+tail -f /home/vagrant/kafka/logs/zookeeper.out
+
+# zookeeper-shell localhost:2181
+# ls / 
+# we shall see brokers, topics as they are created
+
+# start kafka server
+# check out the server.properties file in the kafka configuration directory
+less /home/vagrant/kafka/config/server.properties
+# broker.id has to be different for each broker
+# same zookeeper.connect will make different brokers part of a cluster
+
+# set the default number of partitions to three in server.properties
+vim /home/vagrant/kafka/config/server.properties
+
+# start kafka-server in the foregroud
+kafka-server-start  /home/vagrant/kafka/config/server.properties
+
+# stop and start as a daemon
+kafka-server-start -daemon /home/vagrant/kafka/config/server.properties
+# verify port 9092 occupied
+tlpg 9092
+# logs will be in /home/vagrant/kafka/logs in server.log
+tail -f /home/vagrant/kafka/logs/server.log
+
+# check out the broker node in the zookeeper shell
+
+-----------------------------------------------------------------------
+
+########################################################################
+create, delete, topics
+########################################################################
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --list
+
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic first_topic --partitions 3 --replication-factor 1
+
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --topic first_topic --describe
+
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --topic --delete first_topic
+
+########################################################################
+tmux elementary commands and navigation
+########################################################################
+Ctrl+b " - split window into two panes horizontally
+Ctrl+b % - split window into two panes vertically
+Ctrl+b Ctrl+ArrowKey - resize in direction of arrow
+Ctrl+b ArrowKey - move to the pane in direction of arrow
+Ctrl+b o - move cursor to other pane
+Ctrl+b q + pane-number - move to the numbered pane
+
+########################################################################
+ check the kafka console consumer and kafka console producer in action
+########################################################################
+tmux and createt two panes
+in one pane
+kafka-console-producer.sh --bootstrap-server master.e4rlearning.com:9092 --topic first_topic
+in other pane
+kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092 --topic first_topic
+in the producer pane, type in stuff and see it appearing alongside in the consumer pane
+
+########################################################################
+explore visual tools for examinging zookeeper and kafkaserver through 
+docker containers
+########################################################################
+# start docker 
+sudo systemctl start docker
+# check docker service status
+sudo systemctl status docker
+
+# zoonavigator to check out zookeeper
+docker run -d -p 9001:9000 --name zoonavigator elkozmon/zoonavigator
+# note - have to connect to ip:2181, localhost:2181 or 127.0.0.1:2181 does not work
+# kafka manager to check out the kafka cluster
+# set the advertised listeners to the ip of the virtual machine
+# make a backup copy of server.properties
+cp /home/vagrant/kafka/config/server.properties /home/vagrant/kafka/config/server.properties.backup
+
+vim /home/vagrant/kafka/config/server.properties
+change #advertised.listeners=PLAINTEXT://your.host.name:9092 to advertised.listeners=PLAINTEXT://192.168.50.2:9092 - use the ip for your virtual machine
+
+docker run -d -p 9000:9000 -e ZK_HOSTS="192.168.50.2:2181" hlebalbau/kafka-manager:stable
+
+# go to ipaddress_of_vm:9000
+# click on cluster -> add
+# provide zookeeper address as ipaddress_of_vm:2181 and save
+
+########################################################################
+explore kafka consumer groups
+########################################################################
+# set up tmux to have producer in one pane and three consumers, 
+part of a consumer group, one each in a different pane
+# start producer to write to a topic
+kafka-console-producer.sh --topic first_topic --bootstrap-server master.e4rlearning.com:9092
+# one by one start a consumer in a group
+kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092 --topic first_topic --group firstgroup --from-beginning
+# set up three more panes and start three more consumers to consume the
+topic 
+kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092 --topic first_topic --group secondgroup --from-beginning
+# divide the producer pane into two and start another producer to write to the same topic
+# shut down all and now explore producer and consumer in consumer groups
+with messages produced with a key
+kafka-console-producer.sh --bootstrap-server master.e4rlearning.com:9092 --topic key-topic --property parse.key=true --property key.separator=, --property ignore.errors=true
+# start three consumers 
+kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092 --topic key-topic --property print.key=true --from-beginning
+
+########################################################################
+ Java producer and consumer API
+########################################################################
+* check out the producer demo - ProducerDemo.java
+* producer demo with keys - ProducerDemoKeysCallback.java
+
+* check out ConsumerDemo - ConsumerDemo.java
+* Consumer seek to an offset for a particular partition - ConsumerAssignAndSeek.java
+* Cleanup using wakeupException with Consumer running on a separate thread - ConsumerDemoWithThread.java
+* Admin client and checking, printing, resetting offsets - ConsumerDemoWithAdminClient.java
+* Reebalance listener called on partition assignment and revocation - ConsumerDemoWRBL.java
+
+* Send lines from a file to a Kafka topic - ProducerFileClient.java
+* Use twint to get tweets for a set of terms and route to a kafka topic - ProducerTweetsFileClient.java
+* twint fix in machine
+pip3 uninstall twint
+pip3 install --user --upgrade git+https://github.com/twintproject/twint.git@origin/master#egg=twint
+
+
+################################################################
+set up Cassandra and use it as the sink with the consumer API
+################################################################
+
+# check and start cassandra 
+sudo systemctl status cassandra
+sudo systemctl start cassandra
+
+# creating a keyspace, a demo table and inserting some values
+# launch cqlsh
+CREATE KEYSPACE testks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+create table ttbl(sunsign text, id int, fname text, lname text, primary key ((sunsign, id)));
+insert into ttbl(sunsign, id, fname, lname) values ('libra', 1, 'amitabh', 'bacchan');
+insert into ttbl(sunsign, id, fname, lname) values ('libra', 2, 'hema', 'malini');
+
+# create finks - finance keyspace
+CREATE KEYSPACE finks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+# create fotable in finks
+CREATE TABLE finks.fotable (
+    symbol text,
+    expiry date,
+    trdate date,
+    instrument text,
+    option_typ text,
+    strike_pr decimal,
+    chgoi int,
+    contracts int,
+    cpr decimal,
+    oi int,
+    trdval decimal,
+    tstamp timestamp,
+   PRIMARY KEY ((symbol, expiry), trdate, instrument, option_typ, strike_pr)
+);
+# to connect to remote host
+set broadcast_rpc_address to public ip;
+for vm set it to the network adapter ip alotted
+set rpc_address to private ip - 10.0.0.4/5 etc;
+for vm set it to the ip gotten from network adapter
+set listen_address to localhost
+after this cqlsh will fail connecting to 127.0.0.1
+so use
+cqlsh myVM 9042
+where myVM is the hostname and 9042 is the port
+the private ip will also work
+the public ip also does
+so in vm use 
+cqlsh 192.168.50.2 9042
+
+run ConsumerCassandra.java to send messages from kafka nsefotopic to cassandra fotbl
+
+################################################################
+MySQL sink with the consumer API
+################################################################
+
+# mysql sink 
+# follow the steps in fotbl_mysql_create.sql to create set up for sending nsefotopic to mysql
+# run ConsumerMySQL.java to send the topic messages to mysql
+
+# set up for sending data to hdfs sink
+# go to hadoop conf directory
+cd /home/samar/hadoop/etc/hadoop
+# replace localhost with ip of vm
+sed -i s/localhost/<vm ip>/g core-site.xml
+sed -i s/localhost/<vm ip>/g hdfs-site.xml
+# start hdfs daemons
+hdfs --daemon start namenode
+hdfs --daemon start datanode
+# run ConsumerHDFSSink.java to send nsefotopic messages to hdfs
+# one may get hadoop_home not set in windows, winutils may not be installed
+# worked after giving hadoop home not set error
+# one solution is to package the jar, add hadoop classpath and run the class
+# or on the windows machine download winutils and set hadoop home
+
+###################################################################
+elastic search consumer - setting up elasticsearch and kibana
+###################################################################
+# to be able to connect to elasticsearch from host/remote machine make the following changes in /home/samar/elasticsearch/config/elasticsearch.yml
+network.host: localhost
+http.host: 0.0.0.0
+
+# start elasticsearch as a daemon
+/home/samar/elasticsearch/bin/elasticsearch -d
+# verify elasticsearch started
+tlpg 9200
+# download kibana
+cd ~
+# verify in /home/samar
+pwd
+curl -O https://artifacts.elastic.co/downloads/kibana/kibana-7.11.2-linux-x86_64.tar.gz
+tar xvzf kibana-7.11.2-linux-x86_64.tar.gz -C ~
+ln -s /home/samar/kibana-7.11.2-linux-x86 /home/samar/kibana
+
+in /home/samar/kibana/config/kibana.yml  - set server.host to the ip of the vm to be able to connect to the kibana site from the host machine
+
+start the kibana server
+kibana/bin/kibana
+
+check out basic information about elasticsearch from es_commands.txt and es_notes.txt
+
+Run ElasticsearchConsumer.java to consume topics from tweets topic into elasticsearch
+
+* Using Schema Registry to produce messages with a schema
+################################################################
+start schema-registry and docker schema registry container
+################################################################
+# start schema-registry
+schema-registry-start -daemon /home/vagrant/confluent/etc/schema-registry/schema-registry.properties
+
+docker run -d -p 8002:8000 -e "SCHEMAREGISTRY_URL=http://192.168.50.2:8081" -e "PROXY=true" landoop/schema-registry-ui
+
+* Create a Generic Record to a topic - GenericRecordProducer.java
+* check out schema-registry rest api
+
+# see the schemas
+curl 192.168.50.2:8081/subjects
+# see versions for a schema
+curl 192.168.50.2:8081/subjects/<subject-name eg gcustomer-value>/versions
+# see the schema for a particular version
+curl 192.168.50.2:8081/subjects/<subject-name eg gcustomer-value>/versions/1
+# Delete a schema version - first soft delete 
+curl -X DELETE 192.168.50.2:8081/subjects/<subject-name eg gcustomer-value>/versions/1
+# Permanently delete a schema version
+curl -X DELETE 192.168.50.2:8081/subjects/<subject-name eg gcustomer-value>/versions/1?permanent=true
+
+* use avro specific reocrds to populate topic with schemas
+* check pom.xml where we have avro-maven-plugin 
+* it will generate the java avro schemas for schemas in src/main/resources/avro folder
+* check out the customer.avsc 
+* use AvroProducer.Java to create a Kafka topic and record for the customer schema
+* in customer.avsc and AvroProducer.Java comment the version 1 code and check that we are able to work with version 2 to see avro schema evolution in action
+* user AvroProducerFileClient.java to load fo01JAN2918bhav.csv to nsefotopic_avro, use nseforec.avsc for the nse fo avro specific record
+
+###################################################################
+start multiple brokres for the cluster
+###################################################################
+go to /home/vagrant/kafka/config/
+copy server.properties to server1.properties
+in server1.properties change broker.id to 1 
+and replace 9092 with 9093
+uncomment the two lines below and change 8090 to 8091
+#confluent.metadata.server.listeners=http://0.0.0.0:8090
+#confluent.metadata.server.advertised.listeners=http://127.0.0.1:8090
+
+start kafka server 2 
+replicate with server2.properties, port 9094 and 8092 and start kafka server 3
+
+start docker kafka server and check the three servers active
+
+##################################################################
+check topic configurations
+##################################################################
+# see the options
+kafka-configs
+
+# create a test_config_topic to check out configurations
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic test_config_topic --partitions 3 --replication-factor 1
+
+# describe configs for topic
+kafka-configs --bootstrap-server master.e4rlearning.com:9092 --entity-type topics --entity-name test_config_topic --describe
+
+# add a configuration
+kafka-configs --bootstrap-server master.e4rlearning.com:9092 --entity-type topics --entity-name test_config_topic  --add-config min.insync.replicas=2 --alter
+
+# check the configuration
+kafka-configs --bootstrap-server master.e4rlearning.com:9092 --entity-type topics --entity-name test_config_topic --describe
+
+# see configurations using kafka-topics.sh
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --topic test_config_topic --describe
+
+# delete configuration
+kafka-configs --bootstrap-server master.e4rlearning.com:9092 --entity-type topics --entity-name test_config_topic  --delete-config min.insync.replicas --alter
+
+# verify config deleted
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --topic test_config_topic --describe
+
+# delete the topic
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --delete --topic test_config_topic
+
+######################################################################
+log compaction check out
+######################################################################
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic shippinig_address --partitions 1 --replication-factor 1 --config cleanup.policy=compact --config min.cleanable.dirty.ratio=0.001 --config segment.ms=5000
+
+kafka-console-producer.sh --broker-list master.e4rlearning.com:9092 --topic shippinig_address --property parse.key=true --property key.separator=,
+
+kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092 --topic shippinig_address --property print.key=true --property key.separator=,
+
+######################################################################
+Kafka mirror maker 
+######################################################################
+copy zookeeper.properties to zookeeper1.properties and change port to 2182
+create a different directory /tmp/zookeeper1 and in zookeeper1.properties set dataDir=/tmp/zookeeper1
+start the new zookeeper
+zookeeper-server-start.sh -daemon /home/vagrant/kafka/config/zookeeper1.properties
+
+copy server.properties to server-cl2.properties
+make a new directory /tmp/kafka-logs1
+in /home/vagrant/kafka/config/server-cl2.properties
+change port 9092 to 9095 for listeners and advertised listeners
+change port 8090 to 8095 for 
+confluent.metadata.server.listeners and 
+confluent.metadata.server.advertised.listeners
+start the new cluster broker
+kafka-server-start -daemon /home/samar/confluent/etc/server-cl2.properties
+
+in consumer.properties  add auto.offset.reset=earliest and group.id=test-consumer-group
+
+in producer.properties set bootstrap.servers=master.e4rlearning.com:9095
+
+in one pane
+kafka-mirror-maker --consumer.config  consumer.properties --producer.config producer.properties --new.consumer --num.streams=2 --whitelist ".*"
+in another one
+kafka-console-producer.sh --bootstrap-server master.e4rlearning.com:9092 --topic first_topic
+in another one 
+kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092 --topic first_topic
+in another one
+kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9095 --topic first_topic
+
+in the kafka-server ui tool add zookeeper hosts as vimip:2181 and vmip:2182 as zookeeper hosts
+
+add the new cluster  and see the topics getting replicated
+
+######################################################################
+Kafka streams
+######################################################################
+run WordCountApp.java to check basic kafka streams topology
+run kafka console producer on the input topic and kafka console consumer on the output topic simultaneously
+
+run WordCountTWApp.java to check window operations
+run kafka console producer and consumer on input and output topics simultaneously
+
+######################################################################
+Streams Streams Join
+######################################################################
+create topics - impressions, clicks, impressionsandclicks
+
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic impressions --partitions 3 --replication-factor 1
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic clicks --partitions 3 --replication-factor 1
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic impressionsandclicks --partitions 3 --replication-factor 1
+
+run kafka console consumer for each of the three topics
+
+and run StreamStreamJoinDemo.java
+
+######################################################################
+Streams Table Join
+######################################################################
+create topics user-regions, user-clicks and user-clicks-regions
+
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic user-regions --partitions 3 --replication-factor 1
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic user-clicks --partitions 3 --replication-factor 1
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic user-clicks-regions --partitions 3 --replication-factor 1
+
+run kafka console consumer for each of the three topics
+
+run StreamTableJoinDemo.java and then StreamTableJoinDriver.Demo
+
+##################################################################
+Table Table Join 
+##################################################################
+create topics - player-team, player-score, player-team-score
+
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic player-team -partitions 3 --replication-factor 1
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic player-score --partitions 3 --replication-factor 1
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic player-team-score --partitions 3 --replication-factor 1
+
+Run TableTableJoin.java
+
+##################################################################
+Stream Globak KTable Join 
+##################################################################
+create topics userp and usert   --purchases and table
+
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic userp -partitions 3 --replication-factor 1
+
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic usert -partitions 3 --replication-factor 1
+
+create topic upej - user purchase enrichment join
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic upej -partitions 3 --replication-factor 1
+
+run UEE.java // UserEventEnrichment.java
+run UserDataProducer.java
+
+consume topic upej and check
+
+##################################################################
+Streams branching
+#################################################################
+create topics nsefotopic_avro and gr-1mn and lakh-to-mn and upto1lakh
+
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic nsefotopic_avro -partitions 3 --replication-factor 1
+
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic gr-1mn -partitions 3 --replication-factor 1
+
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic lakh-to-mn -partitions 3 --replication-factor 1
+
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic upto1lakh -partitions 3 --replication-factor 1
+
+run AvroProducerFileClient.java to populate nsefotopic_avro
+and kafka console consumer for the it plus the three branch topics
+
+
+##################################################################
+Streaming exactly once app
+##################################################################
+create topics bank-transactions and bank-balance-exactly-once
+
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic bank-trasactions -partitions 3 --replication-factor 1
+kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic bank-balance-exactly-once -partitions 3 --replication-factor 1
+
+run BankBalanceExactlyOnceApp.java
+run BankTransactionsProducer.java
+
+check the bank-balance-exactly-once topic
+kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092 --topic bank-balance-exactly-once --property print.key=true
+
+##################################################################
+Important resources - URLs
+##################################################################
+
+https://dev.to/confluentinc/5-things-every-apache-kafka-developer-should-know-4nb
+
+https://www.confluent.io/blog/incremental-cooperative-rebalancing-in-kafka/
+
+https://www.confluent.io/blog/cooperative-rebalancing-in-kafka-streams-consumer-ksqldb/
+
+https://medium.com/bakdata/solving-my-weird-kafka-rebalancing-problems-c05e99535435
