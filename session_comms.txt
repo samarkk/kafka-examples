@@ -1,3 +1,4 @@
 E:
 cd vagpg\kafkasecmon
 vagrant up master
+https://github.com/samarkk/kafka-examples/blob/main/src/main/scripts/steps_vagrant_mm.txt
