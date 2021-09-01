@@ -1,0 +1,367 @@
+kafka-configs --bootstrap-server asuspc.localdomain:9093 --entity-type brokers --entity-name 0 --alter --add-config "listener.name.internal.ssl.endpoint.identification.algorithm="
+
+SSL
+1. create certificate authority and generate key and certificate
+go to admin.e4rlearning.com 
+
+openssl req -new -newkey rsa:4096 -days 365 -x509 -subj "/CN=kafka-security-ca" -keyout ca-key -out ca-cert -nodes
+
+# take a look at the generated files
+cat ca-cert
+cat ca-key
+keytool -printcert -v -file ca-cert
+copy it to the shared vagrant folder
+
+2. on the brokers generate a key store
+export SRVPASS=serversecret
+
+# use the hostnames of the broker
+keytool -genkey -keystore kafka.master.server.keystore.jks -validity 365 -storepass $SRVPASS -keypass $SRVPASS  -dname CN=master.e4rlearning.com -storetype pkcs12
+
+keytool -genkey -keystore kafka.node1.server.keystore.jks -validity 365 -storepass $SRVPASS -keypass $SRVPASS  -dname CN=node1.e4rlearning.com -storetype pkcs12
+
+keytool -genkey -keystore kafka.node2.server.keystore.jks -validity 365 -storepass $SRVPASS -keypass $SRVPASS  -dname CN=node2.e4rlearning.com -storetype pkcs12
+
+keytool -genkey -keystore kafka.node3.server.keystore.jks -validity 365 -storepass $SRVPASS -keypass $SRVPASS  -dname CN=node3.e4rlearning.com -storetype pkcs12
+
+# list files ll
+
+# check the 
+keytool -list -v -keystore kafka.master.server.keystore.jks
+
+3. create a certification request file, to be signed by the CA
+
+keytool -keystore kafka.master.server.keystore.jks -certreq -file cert-file-master -storepass $SRVPASS -keypass $SRVPASS
+cp cert-file-master /vagrant
+keytool -keystore kafka.node1.server.keystore.jks -certreq -file cert-file-node1 -storepass $SRVPASS -keypass $SRVPASS
+keytool -keystore kafka.node2.server.keystore.jks -certreq -file cert-file-node2 -storepass $SRVPASS -keypass $SRVPASS
+keytool -keystore kafka.node3.server.keystore.jks -certreq -file cert-file-node3 -storepass $SRVPASS -keypass $SRVPASS
+
+# do a listing, check
+
+4. sign the server certificate => output: file "cert-signed"
+ssh admin.e4rlearning.com
+openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file-master -out cert-signed-master -days 365 -CAcreateserial -passin pass:$SRVPASS
+
+openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file-node1 -out cert-signed-node1 -days 365 -CAcreateserial -passin pass:$SRVPASS
+
+openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file-node2 -out cert-signed-node2 -days 365 -CAcreateserial -passin pass:$SRVPASS
+
+openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file-node3 -out cert-signed-node3 -days 365 -CAcreateserial -passin pass:$SRVPASS
+
+## check certificates
+### our local certificates
+keytool -printcert -v -file cert-signed
+keytool -list -v -keystore kafka.server.keystore.jks
+
+5. Trust the CA by creating a truststore and importing the ca-cert
+keytool -keystore kafka.server.truststore.jks -alias CARoot -import -file ca-cert -storepass $SRVPASS -keypass $SRVPASS -noprompt
+copy it to the shared /vagrant folder
+cp kafka.server.truststore.jks /vagrant
+
+6 Import CA and the signed server certificate into the keystore
+
+keytool -keystore kafka.master.server.keystore.jks -alias CARoot -import -file ca-cert -storepass $SRVPASS -keypass $SRVPASS -noprompt
+# Certificate was added to keystore
+keytool -keystore kafka.master.server.keystore.jks -import -file cert-signed-master -storepass $SRVPASS -keypass $SRVPASS -noprompt
+# Certificate reply was installed in keystore
+cp kafka.master.server.keystore.jks /vagrant
+
+keytool -keystore kafka.node1.server.keystore.jks -alias CARoot -import -file ca-cert -storepass $SRVPASS -keypass $SRVPASS -noprompt
+keytool -keystore kafka.node1.server.keystore.jks -import -file cert-signed-node1 -storepass $SRVPASS -keypass $SRVPASS -noprompt
+
+keytool -keystore kafka.node2.server.keystore.jks -alias CARoot -import -file ca-cert -storepass $SRVPASS -keypass $SRVPASS -noprompt
+keytool -keystore kafka.node2.server.keystore.jks -import -file cert-signed-node2 -storepass $SRVPASS -keypass $SRVPASS -noprompt
+
+keytool -keystore kafka.node3.server.keystore.jks -alias CARoot -import -file ca-cert -storepass $SRVPASS -keypass $SRVPASS -noprompt
+keytool -keystore kafka.node3.server.keystore.jks -import -file cert-signed-node3 -storepass $SRVPASS -keypass $SRVPASS -noprompt
+
+7 add the SSL configurations to server.properties
+
+ssl.keystore.location=/home/vagrant/kafka.master.server.keystore.jks
+ssl.keystore.password=serversecret
+ssl.key.password=serversecret
+ssl.truststore.location=/home/vagrant/kafka.master.server.truststore.jks
+ssl.truststore.password=serversecret
+
+ssl.keystore.location=/home/vagrant/kafka.node1.server.keystore.jks
+ssl.keystore.password=serversecret
+ssl.key.password=serversecret
+ssl.truststore.location=/home/vagrant/kafka.node1.server.truststore.jks
+ssl.truststore.password=serversecret
+
+ssl.keystore.location=/home/vagrant/kafka.node2.server.keystore.jks
+ssl.keystore.password=serversecret
+ssl.key.password=serversecret
+ssl.truststore.location=/home/vagrant/kafka.node2.server.truststore.jks
+ssl.truststore.password=serversecret
+
+ssl.keystore.location=/home/vagrant/kafka.node3.server.keystore.jks
+ssl.keystore.password=serversecret
+ssl.key.password=serversecret
+ssl.truststore.location=/home/vagrant/kafka.node3.server.truststore.jks
+ssl.truststore.password=serversecret
+
+
+
+8. on the client create a trust store
+export CLIPASS=clientpass
+
+keytool -keystore kafka-client.truststore.jks -alias CARoot -import -file ca-cert  -storepass $CLIPASS -keypass $CLIPASS -noprompt
+
+keytool -list -v -keystore kafka-client.truststore.jks
+
+# verify no ssl working
+kafka-console-producer.sh --bootstrap-server master.e4rlearning.com:9092 --topic first-topic
+kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092 --topic first-topic --from-beginning
+
+9 create client.properties and configure SSL parameters
+do 
+cat > /home/vagrant/client.properties << EOF
+security.protocol=SSL
+ssl.truststore.location=/home/vagrant/kafka-client.truststore.jks
+ssl.truststore.password=clientsecret
+EOF
+
+10 create a topic for ssl
+kafka-topics.sh --zookeeper master.e4rlearning.com --create --topic ssl-topic --partitions 3 --replication-factor 1
+
+12 run the producer to secure topic
+kafka-console-producer.sh --bootstrap-server master.e4rlearning.com:9093 --topic ssl-topic --producer.config /home/vagrant/client.properties
+
+kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9093 --topic ssl-topic --consumer.config /home/vagrant/client.properties --from-beginning
+
+
+######################################################
+set up client ssl authentication
+######################################################
+cd /home/samar/clssl
+
+# now we are generating a key for the client
+keytool -genkey -keystore kafka.client.keystore.jks -validity 365 -storepass $CLIPASS -keypass $CLIPASS  -dname "CN=admin.e4rlearning.com" -alias my-local-pc -storetype pkcs12
+
+keytool -list -v -keystore kafka.client.keystore.jks
+
+keytool -keystore kafka.client.keystore.jks -certreq -file client-cert-sign-request -alias my-local-pc -storepass $CLIPASS -keypass $CLIPASS
+
+# create a file for signing request
+openssl x509 -req -CA ca-cert -CAkey ca-key -in /vagrant/client-cert-sign-request -out /vagrant/client-cert-signed -days 365 -CAcreateserial -passin pass:$SRVPASS
+
+keytool -keystore kafka.client.keystore.jks -alias CARoot -import -file ca-cert -storepass $CLIPASS -keypass $CLIPASS -noprompt
+
+keytool -keystore kafka.client.keystore.jks -import -file client-cert-signed -alias my-local-pc -storepass $CLIPASS -keypass $CLIPASS -noprompt
+
+keytool -list -v -keystore kafka.client.keystore.jks
+cp /vagrant/kafka.client.keystore.jks ~
+
+# add ssl.client.auth=required to server properties
+# add the keystore to the client properties
+cat > /home/vagrant/client.properties << EOF
+security.protocol=SSL
+ssl.truststore.location=/home/vagrant/kafka.client.truststore.jks
+ssl.truststore.password=clientsecret
+ssl.keystore.location=/home/vagrant/kafka.client.keystore.jks
+ssl.keystore.password=clientsecret
+ssl.key.password=clientsecret
+EOF
+cp ~/client.properties /vagrant
+
+
+#####################################################
+set up kerberos
+#####################################################
+##  setup Kerberos server  
+sudo yum install -y krb5-server
+
+* copy *kdc.conf* to directory /var/kerberos/krb5kdc/
+sudo cp /vagrant/kdc.conf /var/kerberos/krb5kdc/
+* copy *kadm5.acl* to directory /var/kerberos/krb5kdc/
+sudo cp /vagrant/kadm5.acl /var/kerberos/krb5kdc/
+* copy *krb5.conf* to directory /etc/
+sudo cp /vagrant/krb5.conf /etc
+
+echo "export REALM=KAFKA.SECURE
+export ADMINPW=this-is-unsecure" >> ~/.bashrc
+
+sudo /usr/sbin/kdb5_util create -s -r KAFKA.SECURE -P this-is-unsecure
+sudo kadmin.local -q "add_principal -pw this-is-unsecure admin/admin"
+
+sudo systemctl restart krb5kdc
+sudo systemctl restart kadmin
+```
+## check services
+```
+sudo systemctl status krb5kdc
+sudo systemctl status kadmin
+```
+#####################################################
+prepare kerberos environment on the admin machine
+#####################################################
+## create principals
+```
+sudo kadmin.local -q "add_principal -randkey reader@KAFKA.SECURE"
+sudo kadmin.local -q "add_principal -randkey writer@KAFKA.SECURE"
+sudo kadmin.local -q "add_principal -randkey admin@KAFKA.SECURE"
+
+sudo kadmin.local -q "add_principal -randkey kafka/master.e4rlearning.com@KAFKA.SECURE"
+sudo kadmin.local -q "add_principal -randkey kafka/node1.e4rlearning.com@KAFKA.SECURE"
+
+```
+## create keytabs
+```
+
+sudo kadmin.local -q "xst -kt /tmp/reader.user.keytab reader@KAFKA.SECURE"
+sudo kadmin.local -q "xst -kt /tmp/writer.user.keytab writer@KAFKA.SECURE"
+sudo kadmin.local -q "xst -kt /tmp/admin.user.keytab admin@KAFKA.SECURE"
+sudo kadmin.local -q "xst -kt /tmp/kafka.service.keytab kafka/master.e4rlearning.com@KAFKA.SECURE"
+sudo kadmin.local -q "xst -kt /tmp/kafka.service.keytab kafka/node1.e4rlearning.com@KAFKA.SECURE"
+
+sudo chmod a+r /tmp/*.keytab
+cp /tmp/*.keytab /vagrant
+
+
+#####################################################
+prepare kafka for kerberos environment on the master
+#####################################################
+on the master machine install krb5 workstation
+sudo yum install -y krb5-workstation.x86_64
+
+cp /vagrant/kafka.service.keytab /home/vagrant
+klist -kt /home/vagrant/kafka.service.keytab
+kinit -kt /home/vagrant/kafka.service.keytab kafka/master.e4rlearning.com
+klist
+
+# copy the jaas_conf to kafka config folder
+cp /vagrant/kafka_server_master_jaas.conf /home/vagrant/kafka/config
+
+# change server.properties to include sasl_ssl
+cp /vagrant/server.properties.masterk.kerberos /home/vagrant/kafka/config/server.properties
+
+# change the kafka service
+sudo cp /vagrant/kafka.service /etc/systemd/system
+
+# reload kafka service
+sudo systemctl daemon-reload
+sudo systemctl restart kafka
+sudo systemctl status kafka
+
+#####################################################
+prepare client for kerberos environment on the admin
+#####################################################
+# create jaas config
+cp /vagrant/kafka_client_jaas.conf /home/vagrant
+# create kerberos properies file 
+cp /vagrant/kafka_client_kerberos.properties /home/vagrant/
+
+## Start console-producer/-consumer
+export KAFKA_OPTS="-Djava.security.auth.login.config=/home/vagrant/kafka_client_jaas.conf"
+
+# installl workstation krb5
+kinit -kt /tmp/admin.user.keytab admin
+
+kafka-topics.sh --zookeeper master.e4rlearning.com --create --topic kafka-security-topic --partitions 3 --replication-factor 1
+
+kafka-console-producer.sh --bootstrap-server master.e4rlearning.com:9094 --topic kafka-security-topic --producer.config /home/vagrant/kafka_client_kerberos.properties
+```
+2nd terminal:
+```
+export KAFKA_OPTS="-Djava.security.auth.login.config=/home/vagrant/kafka_client_jaas.conf"
+
+kinit -kt /tmp/reader.user.keytab reader
+
+kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9094 --topic kafka-security-topic --consumer.config /home/vagrant/kafka_client_kerberos.properties --from-beginning
+
+#####################################################
+set up zookeeper acls
+#####################################################
+# set authorization requirement in server.properties on the master
+cp /vagrant/server.properties.masterk.kerberos.zooacls ~/kafka/config/server.properties
+
+sudo systemctl restart kafka  
+sudo systemctl status kafka  
+
+# now go to admin machine
+# Create a topic
+kafka-topics.sh \
+--zookeeper master.e4rlearning.com:2181 \
+--create \
+--topic acl-test \
+--replication-factor 1 --partitions 1
+
+# Create ACLs
+
+1.) Allow users _reader_ and _writer_ to consumer from topic _acl-test_
+
+kafka-acls.sh \
+--authorizer-properties zookeeper.connect=master.e4rlearning.com:2181 --add \
+--allow-principal User:reader --allow-principal User:writer \
+--operation Read \
+--group=* \
+--topic acl-test
+
+2.) Allow user _writer_ to produce messages into topic _acl-test_
+~/kafka/bin/kafka-acls.sh \
+--authorizer-properties zookeeper.connect=master.e4rlearning.com:2181 --add \
+--allow-principal User:writer \
+--operation Write \
+--topic acl-test
+
+3.) Allow ClusterAction for everyone
+```
+ Principal = User:ANONYMOUS is Allowed Operation = ClusterAction
+```
+
+Listing acls
+~/kafka/bin/kafka-acls.sh \
+--authorizer-properties zookeeper.connect=master.e4rlearning.com:2181 \
+--list \
+--topic acl-test
+
+# Test consuming and producing messages
+1.) start console-producer as user _writer_
+cp /vagrant/kafka_client_jaas.conf /home/vagrant
+export KAFKA_OPTS="-Djava.security.auth.login.config=/home/vagrant/kafka_client_jaas.conf"
+
+# get ticket for writer
+kdestroy
+kinit -kt /vagrant/writer.user.keytab writer
+
+cp /vagrant/kafka_client_kerberos.properties ~
+
+~/kafka/bin/kafka-console-producer.sh \
+--bootstrap-server master.e4rlearning.com:9094 \
+--topic acl-test \
+--producer.config /home/vagrant/kafka_client_kerberos.properties
+
+2.) start a console-consumer as user _reader_
+```
+export KAFKA_OPTS="-Djava.security.auth.login.config=/home/vagrant/kafka_client_jaas.conf"
+
+kdestroy
+kinit -kt /tmp/reader.user.keytab reader
+
+~/kafka/bin/kafka-console-consumer.sh \
+--bootstrap-server master.e4rlearning.com:9094 \
+--topic acl-test \
+--consumer.config /home/vagrant/kafka_client_kerberos.properties --from-beginning
+```
+3.) Remove _Read_ permissions from user _reader_
+```
+~/kafka/bin/kafka-acls.sh \
+--authorizer-properties zookeeper.connect=master.e4rlearning.com:2181 --remove \
+--allow-principal User:reader \
+--operation Read \
+--topic acl-test
+```
+4.) start the console-consumer again as user _reader_
+```
+export KAFKA_OPTS="-Djava.security.auth.login.config=/home/vagrant/kafka_client_jaas.conf"
+
+kdestroy
+kinit -kt /tmp/reader.user.keytab reader
+
+~/kafka/bin/kafka-console-producer.sh \
+--broker-list master.e4rlearning.com:9094 \
+--topic acl-test \
+--producer.config /home/vagrant/kafka_client_kerberos.properties
+```
