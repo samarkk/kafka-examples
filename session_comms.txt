@@ -6,3 +6,4 @@ kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092 --topic
 kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic nsefo-topic --partitions 3 --replication-factor 1
 kafka-consumer-groups.sh --bootstrap-server master.e4rlearning.com:9092 --list
 kafka-consumer-groups.sh --bootstrap-server master.e4rlearning.com:9092 --group --describe
+kafka-consumer-groups.sh --bootstrap-server master.e4rlearning.com:9092 --group  --reset-offsets --to-earliest --topic  --execute
