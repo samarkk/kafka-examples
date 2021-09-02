@@ -9,4 +9,5 @@ kafka-consumer-groups.sh --bootstrap-server master.e4rlearning.com:9092 --group 
 kafka-consumer-groups.sh --bootstrap-server master.e4rlearning.com:9092 --group  --reset-offsets --to-earliest --topic  --execute
 /home/vagrant/confluent/bin/schema-registry-start -daemon /home/vagrant/confluent/etc/schema-registry/schema-registry.properties
 tlpg 8081
-
+kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092 --topic customer-avro --from-beginning
+/home/vagrant/confluent/bin/kafka-avro-console-consumer --bootstrap-server master.e4rlearning.com:9092 --topic customer-avro --from-beginning
