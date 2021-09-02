@@ -4,3 +4,5 @@ vagrant up master
 https://github.com/samarkk/kafka-examples/blob/main/src/main/scripts/steps_vagrant_mm.txt
 kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092 --topic first_topic --property print.key=true --property print.partition=true --property print.offset=true --property print.timestamp=true
 kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic nsefo-topic --partitions 3 --replication-factor 1
+kafka-consumer-groups.sh --bootstrap-server master.e4rlearning.com:9092 --list
+kafka-consumer-groups.sh --bootstrap-server master.e4rlearning.com:9092 --group --describe
