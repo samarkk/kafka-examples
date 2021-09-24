@@ -12,4 +12,5 @@ tlpg 8081
 kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092 --topic customer-avro --from-beginning
 /home/vagrant/confluent/bin/kafka-avro-console-consumer --bootstrap-server master.e4rlearning.com:9092 --topic customer-avro --from-beginning
 kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092  --from-beginning --property print.key=true --property value.deserializer=org.apache.kafka.common.serialization.LongDeserializer
+https://drive.google.com/drive/folders/1yWvQHYmDIQTo5GjIRfpqa0KbhNoFGznP?usp=sharing
 
