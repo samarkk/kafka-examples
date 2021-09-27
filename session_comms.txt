@@ -1,2 +1,3 @@
 go to localhost:9001
 192.168.50.2:2181
+kafka-rest-start -daemon /home/vagrant/confluent/etc/kafka-rest/kafka-rest.properties
