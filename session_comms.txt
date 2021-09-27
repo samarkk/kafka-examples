@@ -1,3 +1,5 @@
 go to localhost:9001
 192.168.50.2:2181
 kafka-rest-start -daemon /home/vagrant/confluent/etc/kafka-rest/kafka-rest.properties
+kafka-console-consumer --bootstrap-server localhost:9092 --topic ide_topic --property print.key=true --property print.partition=true --property print.offset=true --property print.timestamp=true --from-beginning
+System.out.println("Topic: " + metadata.topic() + ", partition: " + metadata.partition() + ", offset: " + metadata.offset() + ", key: " + prec.key() + ",value: " + prec.value());
