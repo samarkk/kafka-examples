@@ -1,16 +1,2 @@
-E:
-cd vagpg\kafkasecmon
-vagrant up master
-https://github.com/samarkk/kafka-examples/blob/main/src/main/scripts/steps_vagrant_mm.txt
-kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092 --topic first_topic --property print.key=true --property print.partition=true --property print.offset=true --property print.timestamp=true
-kafka-topics.sh --zookeeper master.e4rlearning.com:2181 --create --topic nsefo-topic --partitions 3 --replication-factor 1
-kafka-consumer-groups.sh --bootstrap-server master.e4rlearning.com:9092 --list
-kafka-consumer-groups.sh --bootstrap-server master.e4rlearning.com:9092 --group --describe
-kafka-consumer-groups.sh --bootstrap-server master.e4rlearning.com:9092 --group  --reset-offsets --to-earliest --topic  --execute
-/home/vagrant/confluent/bin/schema-registry-start -daemon /home/vagrant/confluent/etc/schema-registry/schema-registry.properties
-tlpg 8081
-kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092 --topic customer-avro --from-beginning
-/home/vagrant/confluent/bin/kafka-avro-console-consumer --bootstrap-server master.e4rlearning.com:9092 --topic customer-avro --from-beginning
-kafka-console-consumer.sh --bootstrap-server master.e4rlearning.com:9092  --from-beginning --property print.key=true --property value.deserializer=org.apache.kafka.common.serialization.LongDeserializer
-https://drive.google.com/drive/folders/1yWvQHYmDIQTo5GjIRfpqa0KbhNoFGznP?usp=sharing
-
+go to localhost:9001
+192.168.50.2:2181
