@@ -6,7 +6,7 @@ System.out.println("Topic: " + metadata.topic() + ", partition: " + metadata.par
 kafka-consumer-groups --bootstrap-server master:9092 --list
 kafka-consumer-groups --bootstrap-server master:9092 --group idegroup --describe
 kafka-consumer-groups --bootstrap-server master:9092 --group idegroup --topic nsefotopic --reset-offsets --to-earliest --execute
-kafka-topics --zookeeper master.e4rlearning.com:9092 --create --topic wci --partitions 3 --replication-factor 3
-kafka-topics --zookeeper master.e4rlearning.com:9092 --create --topic wco --partitions 3 --replication-factor 3
-kafka-console-produdcer --bootstrap-server master.e4relarning.com:9092 --topic wci
-kafka-console-consumer --bootstrap-server master.e4relarning.com:9092 --topic wco --property print.key=true --value-deserializer org.apache.kafka.common.serailization.LongDeserializer
+kafka-topics --zookeeper master.e4rlearning.com:2181 --create --topic wci --partitions 3 --replication-factor 3
+kafka-topics --zookeeper master.e4rlearning.com:2181 --create --topic wco --partitions 3 --replication-factor 3
+kafka-console-produdcer --bootstrap-server master.e4rlearning.com:9092 --topic wci
+kafka-console-consumer --bootstrap-server master.e4rlearning.com:9092 --topic wco --property print.key=true --value-deserializer org.apache.kafka.common.serialization.LongDeserializer
