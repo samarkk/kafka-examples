@@ -1,0 +1,266 @@
+#######################################################
+## kafka-monitor
+#######################################################
+
+# on admin install git
+sudo yum install -y git
+# clone the linked in kafka monitor repository
+git clone https://github.com/linkedin/kafka-monitor.git
+cd kafka-monitor
+# to build jar we need to have jdk 8 installed
+./gradlew jar
+# will have bin and config directories after this
+
+# will show various metrics - configruable
+/home/vagrant/kafka-monitor/bin/single-cluster-monitor.sh  --broker-list 192.168.50.2:9092,192.168.50.3:9092,192.168.50.4:9092 --zookeeper 192.168.50.2:2181 --topic kafka-monitor-topic
+
+# on the admin go to webapp and run
+python -m SimpleHTTPServer
+
+###################################################################
+## monitoring - prometheus and grafana
+###################################################################
+
+# on the master and kafka nodes
+mkdir prometheus
+cd prometheus
+# get the prometheus javaagent jar
+wget https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.16.1/jmx_prometheus_javaagent-0.16.1.jar
+
+# get the javaagent kafka yml 
+wget https://raw.githubusercontent.com/prometheus/jmx_exporter/master/example_configs/kafka-2_0_0.yml
+
+export KAFKA_OPTS="-javaagent:/home/vagrant/prometheus/jmx_prometheus_javaagent-0.16.1.jar=8080:/home/vagrant/prometheus/kafka-2_0_0.yml"
+
+# add above as an environment for kafka service
+Environment="KAFKA_OPTS=-javaagent:/home/vagrant/prometheus/jmx_prometheus_javaagent-0.16.1.jar=8080:/home/vagrant/prometheus/kafka-2_0_0.yml"
+
+restart kafka
+
+curl localhost:8080 or on other machines with machine ip
+
+###################################################
+on admin machine
+###################################################
+# install prometheus
+mkdir prometheus
+wget  https://github.com/prometheus/prometheus/releases/download/v2.29.2/prometheus-2.29.2.linux-amd64.tar.gz
+tar xvzf prometheus-2.29.2.linux-amd64.tar.gz
+mv prometheus-2.29.2.linux-amd64 prometheus
+cp /vagrant/prometheus.yml prometheus
+
+/home/vagrant/prometheus/prometheus --config.file=/home/vagrant/prometheus/prometheus.yml --storage.tsdb.path=/home/vagrant/prometheus/data
+
+now check admin ip:9090
+
+install prometheus as a service
+# sudo vim /etc/systemd/system/prometheus.service
+[Unit]
+Description=Prometheus Server
+Documentation=https://prometheus.io/docs/introduction/overview/
+After=network-online.target
+
+[Service]
+User=ec2-user
+ExecStart=/home/vagrant/prometheus/prometheus --config.file=/home/vagrant/prometheus/prometheus.yml --storage.tsdb.path=/home/vagrant/prometheus/data
+
+[Install]
+WantedBy=multi-user.target
+
+# install grafana
+sudo vim /etc/yum.repos.d/grafana.repo
+[grafana]
+name=grafana
+baseurl=https://packages.grafana.com/enterprise/rpm
+repo_gpgcheck=1
+enabled=1
+gpgcheck=1
+gpgkey=https://packages.grafana.com/gpg.key
+sslverify=1
+sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+
+sudo yum install grafana-enterprise
+
+sudo systemctl daemon-reload
+sudo systemctl start grafana-server
+sudo systemctl status grafana-server
+
+log in on ip:3000 as admin, admin
+
+#############################################################
+install jolokia agent for each broker and kafka-rolling-restart
+#############################################################
+wget https://repo1.maven.org/maven2/org/jolokia/jolokia-jvm/1.7.0/jolokia-jvm-1.7.0.jar
+
+export KAFKA_OPTS="-javaagent:/home/vagrant/prometheus/jmx_prometheus_javaagent-0.16.1.jar=8080:/home/vagrant/prometheus/kafka-2_0_0.yml -javaagent:/home/vagrant/jolokia/jolokia-jvm-1.7.0.jar=host=*"
+
+sudo yum install -y jq
+curl localhost:8778/jolokia/read/kafka.server:type=KafkaRequestHandlerPool,name=RequestHandlerAvgIdlePercent | jq
+
+curl localhost:8778/jolokia/read/kafka.server:name=UnderReplicatedPartitions,type=ReplicaManager/Value | jq
+
+
+# on admin machine install kafka-utils
+sudo yum install python3
+sudo yum install gcc openssl-devel
+sudo pip3 install --upgrade pip
+pip install --user kafka-utils
+# if get setup_rust, wheel not errors
+do
+pip install --user setup_rust
+pip install --user wheel
+cd .ssh
+touch config
+vim config so it has
+Host *
+   StrictHostKeyChecking no
+
+
+kafka-rolling-restart --cluster-type kafka --start-command "systemctl start kafka" --stop-command "systemctl stop kafka" --check-count 3
+
+
+#############################################################
+# updating dynamic configurations for brokers
+#############################################################
+# source of code and full documentation is here:
+# https://kafka.apache.org/documentation/#dynamicbrokerconfigs
+
+KAFKA_HOST=192.168.50.2:9092
+
+# To alter the current broker configs for broker id 1 (for example, the number of log cleaner threads):
+kafka-configs --bootstrap-server $KAFKA_HOST --entity-type brokers --entity-name 1 --alter --add-config log.cleaner.threads=2
+
+# To describe the current dynamic broker configs for broker id 1:
+kafka-configs --bootstrap-server $KAFKA_HOST --entity-type brokers --entity-name 1 --describe
+
+# To delete a config override and revert to the statically configured or default value for broker id 1 (for example, the number of log cleaner threads):
+kafka-configs --bootstrap-server $KAFKA_HOST --entity-type brokers --entity-name 1 --alter --delete-config log.cleaner.threads
+
+# Some configs may be configured as a cluster-wide default to maintain consistent values across the whole cluster. All brokers in the cluster will process the cluster default update. For example, to update log cleaner threads on all brokers:
+kafka-configs --bootstrap-server $KAFKA_HOST --entity-type brokers --entity-default --alter --add-config log.cleaner.threads=2
+
+# To describe the currently configured dynamic cluster-wide default configs:
+kafka-configs --bootstrap-server $KAFKA_HOST --entity-type brokers --entity-default --describe
+
+# Delete the cluster-wide default config
+kafka-configs --bootstrap-server $KAFKA_HOST --entity-type brokers --entity-default --alter --delete-config log.cleaner.threads
+
+#############################################################
+# rebalancing using kafka binaries
+#############################################################
+export ZK_HOST="192.168.50.2:2181"
+export KAFKA_HOST="192.168.50.2:9092"
+
+# create a kafka topic with 2 partition and 2 RF
+kafka-topics --zookeeper $ZK_HOST --create --topic second_topic --partitions 2 --replication-factor 2
+
+# describe to see the partition assignment
+kafka-topics --zookeeper $ZK_HOST --describe --topic second_topic
+
+# Produce some messages
+kafka-console-producer --broker-list $KAFKA_HOST --topic second_topic
+
+# Consume the messages
+kafka-console-consumer --bootstrap-server $KAFKA_HOST --topic second_topic --from-beginning
+
+# Create an assignment
+# use file topics_repartition.json
+kafka-reassign-partitions --zookeeper $ZK_HOST  --topics-to-move-json-file /vagrant/topics_repartition.json --broker-list "0,1,2" --generate
+
+# copy the proposed assignment into a file:
+touch reassignment.json
+kafka-reassign-partitions --zookeeper $ZK_HOST --reassignment-json-file /vagrant/reassignment.json --execute
+
+# verify the status
+kafka-reassign-partitions --zookeeper $ZK_HOST --reassignment-json-file /vagrant/reassignment.json --verify
+
+# describe topic:
+kafka-topics --zookeeper $ZK_HOST --describe --topic second_topic
+
+# run preferred replica election 
+kafka-preferred-replica-election --zookeeper $ZK_HOST
+
+# describe topic
+kafka-topics --zookeeper $ZK_HOST --describe --topic second_topic
+
+# Consume the messages
+kafka-console-consumer --bootstrap-server $KAFKA_HOST --topic second_topic --from-beginning
+
+#############################################################
+# rebalancing using kafka-tools kafka-assigner
+#############################################################
+
+pip install --user kafka-tools
+
+kafka-assigner -z master.e4rlearning.com:2181 --tools-path /home/vagrant/kafka/bin/ -g balance -t count
+
+kafka-assigner -z master.e4rlearning.com:2181 --tools-path /home/vagrant/kafka/bin/ -e balance  -t count
+
+####################################################################
+# increasing replication factor kafka-reassign-partitions kafka-assigner
+####################################################################
+export ZK_HOST="192.168.50.2:2181"
+export KAFKA_HOST="192.168.50.2:9092"
+
+# create a kafka topic with 3 partitions and 1 RF
+kafka-topics --zookeeper $ZK_HOST --create --topic third_topic --partitions 3 --replication-factor 1
+
+# describe to see the partition assignment
+kafka-topics --zookeeper $ZK_HOST --describe --topic third_topic
+
+# Produce some messages
+kafka-console-producer --broker-list $KAFKA_HOST --topic third_topic
+
+# Consume the messages
+kafka-console-consumer --bootstrap-server $KAFKA_HOST --topic third_topic --from-beginning
+
+# Create an assignment
+# topics_repartition_third.json
+kafka-reassign-partitions --zookeeper $ZK_HOST  --topics-to-move-json-file //vagrant/topics_repartition_third.json --broker-list "1,2,3" --generate
+
+# save it to third_topic_reassignment.json and make modifications for each partition setting the replicas
+
+kafka-reassign-partitions --zookeeper $ZK_HOST --reassignment-json-file /vagrant/third_topic_reassignment.json --execute
+
+# verify the status
+kafka-reassign-partitions --zookeeper $ZK_HOST --reassignment-json-file /vagrant/third_topic_reassignment.json --verify
+
+# describe topic:
+kafka-topics --zookeeper $ZK_HOST --describe --topic third_topic
+
+# run preferred replica election 
+kafka-preferred-replica-election --zookeeper $ZK_HOST
+
+# describe topic
+kafka-topics --zookeeper $ZK_HOST --describe --topic third_topic
+
+########## increase replication factor using kafka tools
+
+# delete the topics
+kafka-topics --zookeeper $ZK_HOST --delete --topic third_topic
+# create it again and produce to it
+kafka-topics --zookeeper $ZK_HOST --create --topic third_topic --partitions 3 --replication-factor 1
+kafka-console-producer --broker-list $KAFKA_HOST --topic third_topic
+# test an assigner
+kafka-assigner  -z $ZK_HOST --tools-path /home/vagrant/kafka/bin/ --generate set-replication-factor --topic third_topic --replication-factor 3
+
+# execute an assignment
+kafka-assigner  -z $ZK_HOST --tools-path /home/vagrant/kafka/bin/  -e set-replication-factor --topic third_topic --replication-factor 3
+
+# Consume the messages
+kafka-console-consumer --bootstrap-server $KAFKA_HOST --topic third_topic --from-beginning
+
+#############################################################
+## adding, removing brokers
+#############################################################
+# generate an assignment that includes broker 3
+kafka-assigner  -z $ZK_HOST --tools-path /home/vagrant/kafka/bin/ --generate balance --types even
+# execute the assignment
+kafka-assigner  -z $ZK_HOST --tools-path /home/vagrant/kafka/bin/ -e balance --types even
+
+# watch results in Kafka Manager
+# Remove broker 3
+kafka-assigner -z $ZK_HOST --tools-path /home/vagrant/kafka/bin/ -g remove -b 3
+
+# Execute 
+kafka-assigner -z $ZK_HOST --tools-path /home/vagrant/kafka/bin/ -e remove -b 3
