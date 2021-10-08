@@ -262,15 +262,15 @@ docker run -d -p 8002:8000 -e "SCHEMAREGISTRY_URL=http://192.168.181.138:8081" -
 * check out schema-registry rest api
 
 # see the schemas
-curl 192.168.181.138:8081/subjects
+curl 192.168.50.2:8081/subjects
 # see versions for a schema
-curl 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions
+curl 192.168.50.2:8081/subjects/<subject-name eg gcustomer-value>/versions
 # see the schema for a particular version
-curl 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions/1
+curl 192.168.50.2:8081/subjects/<subject-name eg gcustomer-value>/versions/1
 # Delete a schema version - first soft delete 
-curl -X DELETE 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions/1
+curl -X DELETE 192.168.50.2:8081/subjects/<subject-name eg gcustomer-value>/versions/1
 # Permanently delete a schema version
-curl -X DELETE 192.168.181.138:8081/subjects/<subject-name eg gcustomer-value>/versions/1?permanent=true
+curl -X DELETE 192.168.50.2:8081/subjects/<subject-name eg gcustomer-value>/versions/1?permanent=true
 
 * use avro specific reocrds to populate topic with schemas
 * check pom.xml where we have avro-maven-plugin 
@@ -373,8 +373,16 @@ add the new cluster  and see the topics getting replicated
 ######################################################################
 Kafka streams
 ######################################################################
+kafka-topics --zookeeper localhost:2181 --create --topic wci --partitions 3 --replication-factor 1
+kafka-topics --zookeeper localhost:2181 --create --topic wco --partitions 3 --replication-factor 1
+kafka-topics --zookeeper localhost:2181 --create --topic wcotw --partitions 3 --replication-factor 1
+
 run WordCountApp.java to check basic kafka streams topology
+
 run kafka console producer on the input topic and kafka console consumer on the output topic simultaneously
+kafka-console-producer --bootstrap-server localhost:9092 --topic wci
+kafka-console-consumer --bootstrap-server localhost:9092 --topic wco --property print.key=true --value.deserializer org.apache.kafka.common.serialization.LongDeserializer --from-beginning
+kafka-console-consumer --bootstrap-server localhost:9092 --topic wcotw --property print.key=true --from-beginning
 
 run WordCountTWApp.java to check window operations
 run kafka console producer and consumer on input and output topics simultaneously
