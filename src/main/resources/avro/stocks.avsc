@@ -2,7 +2,7 @@
      "type": "record",
      "namespace": "com.example",
      "name": "Nseforec",
-     "version": "2",
+     "version": "1",
      "fields": [
        { "name": "instrument", "type": "string", "doc": "Future or option broadly" },
        { "name": "symbol", "type": "string", "doc": "Name of the stock traded" },
@@ -18,6 +18,7 @@
        { "name": "valinlakh", "type": "float", "doc": "total value traded in lakhs" },
        { "name": "openint", "type":"int", "doc": "total positions open" },
        { "name": "chginoi", "type": "int", "doc": "change in open interest in the day" },
-       { "name": "tmstamp", "type": "string", "doc": "trade date in DD-MMMM-YYYY format"}
+       { "name": "trdate", "type": "string", "doc": "trade date in DD-MMMM-YYYY format"},
+       { "name": "tmstamp", "type": "string", "doc": "timestamp when record was inserted"}
      ]
 }
