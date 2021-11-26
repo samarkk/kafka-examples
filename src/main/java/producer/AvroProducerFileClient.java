@@ -8,6 +8,9 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.Properties;
 
 public class AvroProducerFileClient {
@@ -25,6 +28,26 @@ public class AvroProducerFileClient {
         return props;
     }
 
+    private String convertStringToISODateString(String str) {
+        String mname = str.substring(3, 6);
+        HashMap<String, String> hmap = new HashMap<>();
+        hmap.put("JAN", "01");
+        hmap.put("FEB", "02");
+        hmap.put("MAR", "03");
+        hmap.put("APR", "04");
+        hmap.put("MAY", "05");
+        hmap.put("JUN", "06");
+        hmap.put("JUL", "07");
+        hmap.put("AUG", "08");
+        hmap.put("SEP", "09");
+        hmap.put("OCT", "10");
+        hmap.put("NOV", "11");
+        hmap.put("DEC", "12");
+
+        String strMnameReplaced = str.substring(7, str.length()) + "-" + hmap.get(mname)
+                + "-" + str.substring(0, 2);
+        return strMnameReplaced;
+    }
     private void runProducer(String bootstrapServers, String schemaRegistryURL, String topic, String filePath) throws IOException {
         KafkaProducer<String, Nseforec> producer = new KafkaProducer<String, Nseforec>(createProducerConfig(bootstrapServers, schemaRegistryURL));
 
@@ -77,7 +100,7 @@ public class AvroProducerFileClient {
         Nseforec nserec = Nseforec.newBuilder()
                 .setInstrument(colVals[0])
                 .setSymbol(colVals[1])
-                .setExpiryDt(colVals[2])
+                .setExpiryDt(convertStringToISODateString(colVals[2].toUpperCase()))
                 .setStrikePr(Float.parseFloat(colVals[3]))
                 .setOptionTyp(colVals[4])
                 .setOpenpr(Float.parseFloat(colVals[5]))
@@ -89,7 +112,8 @@ public class AvroProducerFileClient {
                 .setValinlakh(Float.parseFloat(colVals[11]))
                 .setOpenint(Integer.parseInt(colVals[12]))
                 .setChginoi(Integer.parseInt(colVals[13]))
-                .setTmstamp(colVals[14])
+                .setTrdate(convertStringToISODateString(colVals[14].toUpperCase()))
+                .setTmstamp(new Timestamp(System.currentTimeMillis()).toString())
                 .build();
         return nserec;
     }
