@@ -1,0 +1,8 @@
+{"city": { "name": "Mumbai", "citycode": "MU", "latitude": 19.0760, "longitude": 72.8777},"description": "light rain","clouds": 92,"deg": 33,"humidity": 94,"pressure": 1025.12,"rain": 1.25} 
+{"city": {"name": "Delhi","citycode": "DL","latitude": 28.7041,"longitude": 77.1025},"description": "hot","clouds": 26,"deg": 39,"humidity": 43,"pressure": 587.24,"rain": 0.25} 
+{"city": { "name": "Bengaluru", "citycode": "BL", "latitude": 15.7749, "longitude": 73.4194},"description": "fog","clouds": 74,"deg": 29,"humidity": 54,"pressure": 1025.12,"rain": 2} 
+{"city": {    "name": "Hyderabad",    "citycode": "HY",    "latitude": 17.3382,    "longitude": 78.8863},"description": "light rain","clouds": 81,"deg": 32,"humidity": 78,"pressure": 1025.12,"rain": 3} 
+{"city": {"name": "Sonepat","citycode": "SO","latitude": 28.9378,"longitude": 77.3025},"description": "sunny","clouds": 15,"deg": 37,"humidity": 24,"pressure": 1025.12,"rain": 0.2} 
+{"city": {"name": "Kota","citycode": "KO","latitude": 23.0522,"longitude": 72.2437},"description": "haze","clouds": 3,"deg": 39,"humidity": 23,"pressure": 1025.12,"rain": 0.5} 
+{"city": {"name": "Chennai","citycode": "CN","latitude": 18.7157,"longitude": 83.1611},"description": "humid","clouds": 92,"deg": 31,"humidity": 94,"pressure": 1025.12,"rain": 2} 
+{"city": {"name": "Panipat","citycode": "PA","latitude": 31.4545,"longitude": 79.5879},"description": "light rain","clouds": 82,"deg": 34,"humidity": 84,"pressure": 1025.12,"rain": 3}
