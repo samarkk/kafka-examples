@@ -1,0 +1,81 @@
+{
+  "namespace": "streams",
+  "name": "riderequest",
+  "type": "record",
+  "fields": [
+    {
+      "name": "requesttime",
+      "type": {
+        "type": "long",
+        "format_as_time": "unix_long",
+        "arg.properties": {
+          "iteration": {
+            "start": 1,
+            "step": 10
+          }
+        }
+      }
+    },
+    {
+      "name": "latitude",
+      "type": {
+        "type": "double",
+        "arg.properties": {
+          "range": {"min": 25.2 , "max": 28.4}
+        }
+      }
+    },     
+    {
+      "name": "longitude",
+      "type": {
+        "type": "double",
+        "arg.properties": {
+          "range": {"min": 73.2, "max": 80.0}
+        }
+      }
+    },    
+    {
+      "name": "rideid",
+      "type": {
+        "type": "string",
+        "arg.properties": {
+          "regex": "ride_[1-9][0-9][0-9]"
+        }
+      }
+    },
+    {
+      "name": "user",
+      "type": {
+        "type": "string",
+        "arg.properties": {
+          "options": [
+            "Rajnish",
+            "Mohan",
+            "Niaj",
+            "Alok",
+            "Manoj"
+          ]
+        }
+      }
+    },
+    {
+      "name": "city_name",
+      "type": {
+        "type": "string",
+        "arg.properties": {
+          "options": [
+            "Delhi",
+            "Delhi",
+            "Delhi",
+            "Delhi",
+            "Sonepat",
+            "Sonepat",
+            "Sonepat",
+            "Panipat",
+            "Panipat"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,1 +1,89 @@
-
+{
+  "namespace": "streams",
+  "name": "userprofile",
+  "type": "record",
+  "fields": [
+    {
+      "name": "userid",
+      "type": {
+        "type": "string",
+        "arg.properties": {
+          "iteration": {
+            "start": 1000,
+            "step": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "firstname",
+      "type": {
+        "type": "string",
+        "arg.properties": {
+          "options": [
+            "Raman",
+            "Radha",
+            "Amit",
+            "Rajul",
+            "Kumar",
+            "Sunil",
+            "Rakesh",
+            "Mohit",
+            "Saloni"
+          ]
+        }
+      }
+    },
+    {
+      "name": "lastname",
+      "type": {
+        "type": "string",
+        "arg.properties": {
+          "options": [
+            "Dad",
+            "Joshi",
+            "Gupta",
+            "Lakhanpal",
+            "Mehrotra",
+            "Iyer",
+            "Menon"
+          ]
+        }
+      }
+    },
+    {
+      "name": "citycode",
+      "type": {
+        "type": "string",
+        "arg.properties": {
+          "options": [
+            "DL",
+            "CN",
+            "MU",
+            "CN",
+            "KO",
+            "SO",
+            "HY",
+            "PA"
+          ]
+        }
+      }
+    },
+    {
+      "name": "rating",
+      "type": {
+        "type": "string",
+        "arg.properties": {
+          "options": [
+            "3.4",
+            "3.9",
+            "2.2",
+            "4.4",
+            "3.7",
+            "4.9"
+          ]
+        }
+      }
+    }
+  ]
+}
