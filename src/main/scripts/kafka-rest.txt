@@ -1,0 +1,78 @@
+Confluent REST APIs
+The Confluent REST Proxy provides a RESTful interface to a Apache Kafka® cluster, making it easy to produce and consume messages, view the state of the cluster, and perform administrative actions without using the native Kafka protocol or clients
+
+# see the confluent rest api reference
+https://docs.confluent.io/platform/current/kafka-rest/api.html
+
+curl master:8082/topics | jq
+curl master:8082/topics/ide_topic | jq
+curl master:8082/topics/ide_topic/partitions | jq
+curl master:8082/topics/ide_topic/partitions/1 | jq
+curl master:8082/topics/ide_topic/partitions/1/offsets | jq
+
+# binary data sent to topic
+curl -X POST -H "Content-Type: application/vnd.kafka.binary.v2+json" \
+-d '{"records": [{  "key": "a2V5",  "value": "Y29uZmx1ZW50"},{  "value": "a2Fma2E="}] }' \
+master:8082/topics/ide_topic
+
+# json data sent to topic
+curl -X POST -H "Content-Type: application/vnd.kafka.json.v2+json"\
+ -d '{"records": [{  "key": "somekey",  "value": "some json value sent"},{  "value": "some more json stuff"}] }'\
+master:8082/topics/ide_topic | jq
+
+# json data sent to topic
+curl -X POST -H "Content-Type: application/vnd.kafka.json.v2+json" \
+-d '{"records": [{  "key": "somekey",  "value": "some json value sent"},{  "value": "some more json stuff"}] }' \
+master:8082/topics/ide_topic | jq
+
+
+# data with json schema sent to topic
+curl -X POST -H "Content-Type: application/vnd.kafka.jsonschema.v2+json"\
+ -d '{ "value_schema": "{\"type\":\"object\",\"properties\":{\"f1\":{\"type\":\"string\"}}}", "records": [{"value": {"f1": "bar"}}]}' \
+master:8082/topics/json_topic | jq
+
+kafka-json-schema-console-consumer --topic json_topic --bootstrap-server master:9092 --from-beginning
+
+# consumers
+# we need to register a consumer and 
+# since a consumer is stateful 
+# use the endpoint for subsequent operations
+# the formats supported - binary,protobuf,json,avro
+
+# create a rest consumer
+curl -X POST -H "Content-Type: application/vnd.kafka.binary.v2+json" \
+-d '{"name": "restconsumerbin","format": "binary","auto.offset.reset": "earliest", "auto.commit.enable": "false"}' \
+master:8082/consumers/restgroup | jq
+
+# delete the rest consumer
+curl -X DELETE master:8082/consumers/restgroup/instances/restconsumerbin
+
+# subscribe to a topic or topics
+curl -X POST  \
+-H "Content-Type: application/vnd.kafka.v2+json" \
+-d '{ "topics": ["nsefo-topic"] }' \
+master:8082/consumers/restgroup/instances/restconsumerbin/subscription
+
+# check the subscription
+curl master:8082/consumers/restgroup/instances/restconsumerbin/subscription
+
+# get the records
+curl master:8082/consumers/restgroup/instances/restconsumerbin/records | jq
+
+# add query strings to fetching records
+curl master:8082/consumers/restgroup/instances/restconsumerbin/records?timeout=3000&max_bytes=2000 | jq
+
+# reset the offsets and try again
+curl -X POST  \
+-H "Content-Type: application/vnd.kafka.v2+json" \
+-d '{ "partitions": [{"topic":"nsefo-topic","partition": 0}, {"topic":"nsefo-topic","partition": 1}, {"topic":"nsefo-topic","partition": 2}] }' \
+master:8082/consumers/restgroup/instances/restconsumerbin/positions/beginning
+
+
+# admin api
+curl master:8082/v3/clusters | jq
+curl master:8082/clusters/lTlNi3hZQyK2-8SUR08poQ | jq
+curl master:8082/clusters/lTlNi3hZQyK2-8SUR08poQ/brokers | jq
+curl master:8082/clusters/lTlNi3hZQyK2-8SUR08poQ/brokers/0 | jq
+curl master:8082/clusters/lTlNi3hZQyK2-8SUR08poQ/brokers/0/partition-replicas | jq
+curl master:8082/clusters/lTlNi3hZQyK2-8SUR08poQ/brokers/-/tasks | jq
