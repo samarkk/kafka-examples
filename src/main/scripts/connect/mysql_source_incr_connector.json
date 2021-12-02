@@ -1,0 +1,19 @@
+{
+    "name": "jdbc_source_mysql_02",
+    "config": {
+        "connector.class": "io.confluent.connect.jdbc.JdbcSourceConnector",
+        "connection.url": "jdbc:mysql://master.e4rlearning.com:3306/testdb",
+        "connection.user": "connect_user",
+        "connection.password": "connect_password",
+        "topic.prefix": "mysql-02-",
+        "poll.interval.ms": 1000,
+        "table.whitelist": "testdb.accounts",
+        "mode": "incrementing",
+        "incrementing.column.name": "id",
+        "transforms": "createKey,extractInt",
+        "transforms.createKey.type": "org.apache.kafka.connect.transforms.ValueToKey",
+        "transforms.createKey.fields": "id",
+        "transforms.extractInt.type": "org.apache.kafka.connect.transforms.ExtractField$Key",
+        "transforms.extractInt.field": "id"
+    }
+}

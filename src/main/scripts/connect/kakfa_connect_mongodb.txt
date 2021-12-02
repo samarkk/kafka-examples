@@ -1,0 +1,69 @@
+# install the kafka connect mongo component from confluent
+confluent-hub install mongodb/kafka-connect-mongodb:1.6.1
+
+# import fo data into mongodb
+mongoimport -d fdb -c focoll \
+--headerline --type=csv \
+mongodb://192.168.50.5:27017 \
+/home/vagrant/c/test/fo01JAN2020bhav.csv
+
+#import json data into mongodb 
+mongoimport -d moviesdb -c movies \
+mongodb://192.168.50.5:27017 \
+d/tmp/movies_mflix.json
+
+curl -X DELETE master:8083/connectors/mongo-source
+
+curl -X POST \
+-H "Content-Type: application/json" \
+--d '
+{
+    "name": "mongo-source",
+    "config": {
+    "connector.class":"com.mongodb.kafka.connect.MongoSourceConnector",
+    "connection.uri":"mongodb://admin:27017",
+    "database":"fdb",
+    "collection":"focoll",
+    "prefix":"mongo",
+    "topic.create.enabled":"true",
+    "pipeline": [{"$match":{"operationType":{"$in":["insert","update","replace"]}}}]
+    }
+}
+' \
+master:8083/connectors -w "\n"
+"pipeline": "[{"$match":{"operationType":{"$in":["insert","update","replace"]}}}]"
+    }
+    {
+        "name": "mongo-source",
+        "config": {
+        "connector.class":"com.mongodb.kafka.connect.MongoSourceConnector",
+        "connection.uri":"mongodb://admin:27017",
+        "database":"fdb",
+        "collection":"focoll",
+        "prefix":"mongo",
+        "topic.create.enabled":"true",
+        "pipeline": "[{$match:{operationType:{$in:[insert,update,replace]}}}]"
+        }
+    }
+
+curl -X POST -H "Content-Type: application/json" -d @/vagrant/mongo-source.json master:8083/connectors
+
+"pipeline":[{"$match":{"operationType":{"$in":["insert","update","replace"]}}}]"
+
+  "pipeline": [{"$match": {"operationType": "insert"}}, {"$addFields": {"Kafka": "Rules!"}}]
+
+curl -X POST \
+     -H "Content-Type: application/json" \
+     --data '
+     {"name": "mongo-sink",
+      "config": {
+         "connector.class":"com.mongodb.kafka.connect.MongoSinkConnector",
+         "connection.uri":"mongodb://mongo1:27017/?replicaSet=rs0",
+         "database":"quickstart",
+         "collection":"topicData",
+         "topics":"quickstart.sampleData",
+         "change.data.capture.handler": "com.mongodb.kafka.connect.sink.cdc.mongodb.ChangeStreamHandler"
+         }
+     }
+     ' \
+     http://connect:8083/connectors -w "\n"

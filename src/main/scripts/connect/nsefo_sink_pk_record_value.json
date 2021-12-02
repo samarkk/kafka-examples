@@ -1,0 +1,17 @@
+{
+    "name": "jdbc-sink-nsefo-pk-fields-value",
+    "config": {
+        "dialect.name": "MySqlDatabaseDialect",
+        "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+        "connection.url": "jdbc:mysql://master.e4rlearning.com:3306/testdb",
+        "connection.user": "connect_user",
+        "connection.password": "connect_password",
+        "topics": "nsefotopic-avro",
+        "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+        "value.converter": "io.confluent.connect.avro.AvroConverter",
+        "value.converter.schema.registry.url": "http://master.e4rlearning.com:8081",
+        "pk.mode": "record_value",
+        "pk.fields": "instrument,symbol,expiry_dt,strike_pr,option_typ,trdate",
+        "table.name.format": "nsefoconnvalue"
+    }
+}

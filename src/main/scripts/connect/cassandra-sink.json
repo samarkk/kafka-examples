@@ -1,0 +1,17 @@
+{
+    "name": "cassandra-fotable-sink",
+    "config": {
+        "connector.class": "com.datastax.oss.kafka.sink.CassandraSinkConnector",
+        "tasks.max": "3",
+        "topics": "nsefotopic-avro",
+        "contactPoints": "master.e4rlearning.com",
+        "port": 9042,
+        "loadBalancing.localDc": "datacenter1",
+        "topic.nsefotopic-avro.codec.date": "yyyy-MM-dd",
+        "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+        "value.converter": "io.confluent.connect.avro.AvroConverter",
+        "value.converter.schema.registry.url": "http://master.e4rlearning.com:8081",
+        "topic.nsefotopic-avro.finks.fotable.mapping": "symbol=value.symbol,expiry=value.expiry_dt,trdate=value.trdate,instrument=value.instrument,option_typ=value.option_typ,strike_pr=value.strike_pr,chgoi=value.chginoi,contracts=value.contracts,cpr=value.closepr,oi=value.openint,trdval=value.valinlakh,tstamp=value.tmstamp",
+        "topic.nsefotopic-avro.finks.fotable.consistencyLevel": "LOCAL_QUORUM"
+    }
+}

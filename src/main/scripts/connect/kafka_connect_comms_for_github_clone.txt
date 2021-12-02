@@ -1,0 +1,244 @@
+######################################################################
+connect standalone file stream source
+######################################################################
+
+# create the topic
+kafka-topics --bootstrap-server localhost:9092 --create --topic file_connect_standalone --partitions 3 --replication-factor 1
+
+# run connect-standalone with the properties file
+connect-standalone  /home/samar/confluent/etc/kafka/connect-standalone.properties /home/samar/kafka-python-examples/connect-distributed-files/file_connector_standalone.properties
+
+# check the connector properties file
+cat /home/samar/kafka-python-examples/connect-distributed-files/file_connector_standalone.properties
+
+# create the topic 
+kafka-topics --zookeeper localhost:2181 --create --topic file-connect-standalone --partitions 3 --replication-factor 1
+
+# create the file
+touch /home/samar/demo_sa.txt
+
+# in windows run the console consumer and write to the file
+kafka-console-consumer --bootstrap-server localhost:9092 --topic file-connect-standalone --from-beginning
+
+###########################################################################
+Start Connect distributed
+############################################################################
+connect-distributed -daemon /home/samar/confluent/etc/kafka/connect-distributed.properties
+
+tlpg 8083
+
+###########################################################################
+Connect distributed file source
+############################################################################
+
+# create the topic that will hook into the file stream source
+ kafka-topics --bootstrap-server localhost:9092 --create --topic file-connect-dist --partitions 3 --replication-factor 1
+# create the file
+touch /home/samar/distdemo.txt
+
+# create the rest configuration and curl it to connectors
+
+echo '{"name":"file-stream-dist-connector","config":{"connector.class":"org.apache.kafka.connect.file.FileStreamSourceConnector","file":"/home/samar/distdemo.txt", "topic":"file-connect-dist"}}'\
+ | curl -X POST -d @- http://localhost:8083/connectors --header "content-Type:application/json"
+
+# verify that the connector is created
+curl localhost:8083/connectors
+
+# to delete the connector
+curl -X DELETE localhost:8083/connectors/file-stream-dist-connector
+
+kafka-console-consumer --bootstrap-server localhost:9092 --topic file-connect-dist --from-beginning
+
+####################################################################################
+Connect distributed file sink
+####################################################################################
+// to create a file sink connector do following
+ echo '{"name":"file-sink-connector","config":{"connector.class":"org.apache.kafka.connect.file.FileStreamSinkConnector", 
+"file":"/home/samar/copy-of-distdemo.txt", "topics":"file-connect-dist"}}' \
+  | curl -X POST -d @- http://localhost:8083/connectors --header "content-Type:application/json"
+
+
+######################################################################################
+connect distributed hdfs3 sink
+######################################################################################
+# to check installed plugins 
+curl localhost:8083/connector-plugins
+# Installation
+# search for hdfs sink connector
+https://docs.confluent.io/kafka-connect-hdfs3-sink/current/overview.html
+# confluent check confluent hub
+# follow the steps to install hdfs3 sink connector
+confluent-hub install confluentinc/kafka-connect-hdfs3:latest
+# connect distributed restart is required for new plugins to show up
+# make changes to the configuration file, add connectors as needed
+
+# create the avro schema
+# create the program to produce avro record
+# file AvroProducerFileClient
+# Produce to nsefotopic_avro
+
+# follow the quickstart to create hdfs_topic
+#  check the file hdfs3-sink.json
+# create the topic, write to the topic
+# in hdfs create the topics and logs directory
+curl -X POST -H "Content-Type: application/json" -d @/home/samar/kafka-python-examples/connect-distributed-files/hdfs3-sink-nsefo.json localhost:8083/connectors
+
+# download avro-tools and use java -jar avro-tools to check out stuff
+
+# create the hdfs3-sink-nsefo connector
+# it will write form nsefotopic_avro to nsefotopc_avro in /user/samar/topics in hdfs
+
+# produce more to the nsefotopc_avro in kafka and confirm it is piped to nsefotopic_avro in hdfs
+# copy files to local file system
+hdfs dfs -copyToLocal topics/nsefo-topic-avro .
+# get the avro files together
+IN=$(ls  nsefo-topic-avro/*/*.avro | awk '{printf "%s ", $NF}')
+# concatenate them using avro-tools
+java -jar /home/samar/Downloads/avro-tools-1.10.0.jar concat ${IN} /home/samar/stocks.avro
+# check the number of lines in stocks.avro
+ wc -l stocks.avro 
+# print in json and check lines
+java -jar Downloads/avro-tools-1.10.0.jar tojson stocks.avro
+java -jar Downloads/avro-tools-1.10.0.jar tojson stocks.avro | wc -l
+# check the schema
+java -jar Downloads/avro-tools-1.10.0.jar getSchema  stocks.avro
+
+curl -X POST -H "Content-Type: application/json" -d @/home/samar/hdfs3-sink-nsefo-string.json localhost:8083/connectors
+
+
+######################################################################################
+connect distributed mysql source and sink
+######################################################################################
+# log in to mysql as root
+
+mysql -u root -p
+# password - ramanShast1@
+# create testdb database
+create database testdb;
+# create connect_user
+
+create user 'connect_user'@'127.0.0.1'  identified by 'connect_password';
+grant all privileges on testdb.* to  'connect_user'@'127.0.0.1';
+
+create user 'connect_user'@'localhost'  identified by 'connect_password';
+grant all privileges on testdb.* to  'connect_user'@'localhost';
+
+flush privileges;
+
+# create the table to play around with	
+CREATE TABLE accounts(id INTEGER PRIMARY KEY AUTO_INCREMENT NOT NULL, name VARCHAR(255));
+
+# make the following changes to server.properties
+adverised.listeners=PLAINTEXT://localhost:9092
+
+# in connect-distributed.properties
+rest.advertised.host.name=127.0.0.1
+rest.advertised.port=8083
+
+confluent-hub install confluentinc/kafka-connect-jdbc:10.0.2
+
+https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.23/mysql-connector-java-8.0.23.jar
+# the jar has to be copied to confluent to confluent/share/confluent-hub-components/confluentinc-kafka-connect-jdbc/lib/
+
+curl -X POST -H "Content-Type: application/json" -d @/home/samar/kafka-python-examples/connect-distributed-files/mysql_source_connector.json localhost:8083/connectors
+
+curl -X POST -H "Content-Type: application/json" -d @/home/samar/mysql_source_incr_connector.json localhost:8083/connectors
+
+curl -X POST -H "Content-Type: application/json" -d @/home/samar/kafka-python-examples/connect-distributed-files/mysql_sink.json localhost:8083/connectors
+
+ mysql -u root -pabcd testdb -e "insert into accounts(name) values ('newguy-3'), ('newguy-4'), ('newugy-5'), ('newguy-6'), ('newguy-7')"
+ kafka-avro-console-producer \
+--broker-list localhost:9092 --topic orders \
+--property value.schema='{"type":"record","name":"myrecord","fields":[{"name":"id","type":"int"},{"name":"product", "type": "string"}, {"name":"quantity", "type": "int"}, {"name":"price", "type": "float"}]}' 
+
+{"id": 999, "product": "foo", "quantity": 100, "price": 50}
+{"id":1,"product":"product 1", "quantity": 11, "price": 22.4}
+
+kafka-avro-console-consumer \
+--bootstrap-server localhost:9092 --topic mysql-01-accounts \
+--property key.converter=org.apache.kafka.connect.storage.StringConverter \
+--property value.converter=io.confluent.connect.avro.AvroConverter \
+--property value.converter.schema.registry.url=http://localhost:8081 \
+--from-beginning
+
+magic byte error 
+
+Means your data does not adhere to the wire format that's expected for the Schema Registry.
+
+Or, in other words, the data you're trying to read, is not Avro, as expected by the Confluent Avro deserializer
+
+######################################################################################
+connect distributed cassandra sink
+######################################################################################
+# download the kafka connect cassandra sink connector from
+wget https://downloads.datastax.com/kafka/kafka-connect-cassandra-sink.tar.gz
+# extract it to plugins directory
+tail confluent/etc/kafka/connect-distributed.properties
+tar xzf /home/samar/kafka-connect-cassandra-sink.tar.gz -C /home/samar/confluent/share/confluent-hub-components
+# restart connect distributed
+# curl localhost:8083/connector-plugins should show the new plugin
+# follow the link below to create cassandra-sink.json
+https://github.com/DataStax-Examples/kafka-connector-sink-json/blob/master/connector-config.json
+
+curl -X POST -H "Content-Type: application/json" -d @/home/samar/kafka-python-examples/connect-distributed-files/cassandra_sink.json localhost:8083/connectors
+
+august 15, 2021 - note
+to copy to github have replaced /home/samar/*.json and properties with /home/samar/kafka-python-examples/connect-distributed-files/ only up till the point above
+
+######################################################################################
+stream tweets to file and use FileStreamSourceConnector
+######################################################################################
+
+# create the topic that will hook into the file stream source
+ kafka-topics --bootstrap-server localhost:9092 --create --topic tweets_connect --partitions 3 --replication-factor 1
+
+# use twint to pipe tweets into the file that will feed the topic
+twint -s 'olympics 21' -o /home/samar/olympics21.json --json
+
+# create the rest configuration and curl it to connectors
+
+echo '{"name":"tweets_file_connector","config":{"connector.class":"org.apache.kafka.connect.file.FileStreamSourceConnector","file":"/home/samar/olympics21.json", "topic":"tweets_connect"}}'\
+ | curl -X POST -d @- http://localhost:8083/connectors --header "content-Type:application/json"
+
+######################################################################################
+elastic_search_sink
+######################################################################################
+confluent-hub install confluentinc/kafka-connect-elasticsearch:11.0.3
+
+curl -X POST -H "Content-Type: application/json" -d @/home/samar/elastic_search_sink.json localhost:8083/connectors
+
+curl -X DELETE localhost:8083/connectors/es-sink
+
+curl -X PUT -H "Content-Type: application/json" -d @/home/samar/elastic_search_sink.json localhost:8083/connectors/es-sink/config
+
+##########################################################
+####   Postgresql using kafka-connect     ################
+##########################################################
+CREATE SOURCE CONNECTOR `postgres-jdbc-source` WITH(
+  "connector.class"='io.confluent.connect.jdbc.JdbcSourceConnector',
+  "connection.url"='jdbc:postgresql://localhost:5432/postgres',
+  "mode"='incrementing',
+  "incrementing.column.name"='ref',
+  "table.whitelist"='carusers',
+  "connection.password"='abcd',
+  "connection.user"='postgres',
+  "topic.prefix"='db-',
+  "key"='username');
+
+sudo -u -i postgres
+cat > postgres.sql
+CREATE TABLE carusers (
+    username VARCHAR
+  , ref SERIAL PRIMARY KEY
+  );
+
+INSERT INTO carusers (username) VALUES ('Raman');
+INSERT INTO carusers (username) VALUES ('Rajnish');
+INSERT INTO carusers (username) VALUES ('Sandhya');
+
+psql -f postgres.sql
+
+# wait for topic to be created and the data to show up
+# and then print the topic in ksql
+INSERT INTO carusers (username) VALUES ('Niti Mathur');
+INSERT INTO carusers (username) VALUES ('Sudipto Sen');

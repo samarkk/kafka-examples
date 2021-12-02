@@ -1,0 +1,17 @@
+{
+    "name": "hdfs3-sink",
+    "config": {
+        "connector.class": "io.confluent.connect.hdfs3.Hdfs3SinkConnector",
+        "tasks.max": "1",
+        "topics": "test_hdfs",
+        "hdfs.url": "hdfs://localhost:8020",
+        "topics.dir": "/user/samar/topics",
+        "logs.dir": "/user/samar/logs",
+        "flush.size": "3",
+        "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+        "value.converter": "io.confluent.connect.avro.AvroConverter",
+        "value.converter.schema.registry.url": "http://localhost:8081",
+        "confluent.topic.bootstrap.servers": "localhost:9092",
+        "confluent.topic.replication.factor": "1"
+    }
+}
