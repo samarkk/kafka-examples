@@ -1,0 +1,50 @@
+# install vagrant
+https://www.vagrantup.com/docs/installation
+# install virtualbox
+https://www.virtualbox.org/wiki/Downloads
+# after installing vagrant install vagrant-hostmanager plugin
+vagrant plugin install vagrant-hostmanager
+# check for boxes available
+vagrant box list
+# download the shared folder and add the boxes from there 
+# go to the downloaded directory and issue
+vagrant box add centos_admin.box --name centos_admin
+vagrant box add centos_hadoop.box --name centos_hadoop
+# issue vagrant box list again to check the boxes are added
+# there will also be the kafkasecmon zip file in the shared folder
+# unzip that to get the kafkasecmon directtory
+# go to kafkasecmon directory
+# and we can bring up the machines
+# admin has docker containers, kerberos krbkdc, prometheus, grafana installed
+# start zookeeper on the master node
+# and we can have kafka brokers started on each of the other nodes 
+# master, node1, node2, node3
+# to bring up a node - we have to do vagrant up <node>
+# to bring up maultiple machines 
+# we can do
+vagrant up <m1> <m3> <m3> <m4> .....
+# eg
+vagrant up admin master node1 node2
+# to access the machines from windows host 
+# we need to add the entries to the hosts file at
+c:\windows\system32\drivers\etc\hosts
+# may not be possible to edit the hosts file
+# then in each machine, after ti has come up, add the entries to /etc/hosts
+192.168.50.2  master.e4rlearning.com master
+192.168.50.3  node1.e4rlearning.com node1
+192.168.50.4  node2.e4rlearning.com node2
+192.168.50.5  admin.e4rlearning.com admin
+192.168.50.6  node3.e4rlearning.com node3
+
+
+###########################################################
+Standalone installation - linux or windows
+###########################################################
+install jdk - open jdk or oracle - whichever
+set JAVA_HOME
+download confluent or kafka
+# with the extracted directory as the base directory
+for windows run the commands under bin/windows
+for linux | mach run the commands under bin/
+in confluent the config files are located at etc/{kafka,schema-registry,ksqldb,kafka-rest}
+in apache kafka under the configs directory
