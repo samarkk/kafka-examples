@@ -8,9 +8,7 @@ gpgkey=https://www.mongodb.org/static/pgp/server-5.0.asc
 
 wget https://repo.mongodb.org/yum/redhat/7/mongodb-org/5.0/x86_64
 sudo yum install -y mongodb-org
-sudo vim /etc/mongod.conf
-# change 127.0.0.1 to 0.0.0.0
-sudo systemctl start mongod
+
 
 # start three mongodb servers as part of a replica set on admin machine
 # create the directories where the data will be stored
