@@ -1,3 +1,12 @@
+# start on the master node
+cd /home/vagrant/confluent/etc/kafka-rest
+kafka-rest-start -daemon /home/vagrant/confluent/etc/kafka-rest/kafka-rest.properties
+tlpg 8082
+# to see the topics ui go to 
+localhost:8001
+# for schema registry ui go to 
+lcoalhost:8002
+
 sudo vim /etc/yum.repos.d/mongodb-org-5.0.repo
 [mongodb-org-5.0]
 name=MongoDB Repository
