@@ -1,3 +1,48 @@
+sudo vim /etc/yum.repos.d/mongodb-org-5.0.repo
+[mongodb-org-5.0]
+name=MongoDB Repository
+baseurl=https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/5.0/x86_64/
+gpgcheck=1
+enabled=1
+gpgkey=https://www.mongodb.org/static/pgp/server-5.0.asc
+
+wget https://repo.mongodb.org/yum/redhat/7/mongodb-org/5.0/x86_64
+sudo yum install -y mongodb-org
+sudo vim /etc/mongod.conf
+# change 127.0.0.1 to 0.0.0.0
+sudo systemctl start mongod
+
+# start three mongodb servers as part of a replica set on admin machine
+# create the directories where the data will be stored
+mkdir {mongo1,mongo2,mongo3}
+mongod --replSet rs0 --port 27017 --bind_ip localhost,admin.e4rlearning.com --dbpath /home/vagrant/mongo1  --oplogSize 128 2>&1 1>/dev/null &
+mongod --replSet rs0 --port 27018 --bind_ip localhost,admin.e4rlearning.com --dbpath /home/vagrant/mongo2  --oplogSize 128 2>&1 1>/dev/null &
+mongod --replSet rs0 --port 27019 --bind_ip localhost,admin.e4rlearning.com --dbpath /home/vagrant/mongo3  --oplogSize 128 2>&1 1>/dev/null &
+
+# connect to mongodb on port 27017
+mongo --host admin.e4rlearning.com --port 27017
+# create replica set configuration
+rsconf = {
+_id: "rs0",
+members: [
+    {
+     _id: 0,
+     host: "admin.e4rlearning.com:27017"
+    },
+    {
+     _id: 1,
+     host: "admin.e4rlearning.com:27018"
+    },
+    {
+     _id: 2,
+     host: "admin.e4rlearning.com:27019"
+    }
+   ]
+}
+# initiate the replica set
+rs.initiate()
+
+
 # install the kafka connect mongo component from confluent
 confluent-hub install mongodb/kafka-connect-mongodb:1.6.1
 
@@ -12,58 +57,176 @@ mongoimport -d moviesdb -c movies \
 mongodb://192.168.50.5:27017 \
 d/tmp/movies_mflix.json
 
-curl -X DELETE master:8083/connectors/mongo-source
-
+curl -X DELETE master:8083/connectors/mongo-source-newonly
 curl -X POST \
 -H "Content-Type: application/json" \
---d '
+-d '
 {
-    "name": "mongo-source",
+    "name": "mongo-source-newonly",
     "config": {
+    "tasks.max": 3,
     "connector.class":"com.mongodb.kafka.connect.MongoSourceConnector",
-    "connection.uri":"mongodb://admin:27017",
+    "connection.uri":"mongodb://admin.e4rlearning.com:27017",
     "database":"fdb",
     "collection":"focoll",
-    "prefix":"mongo",
-    "topic.create.enabled":"true",
-    "pipeline": [{"$match":{"operationType":{"$in":["insert","update","replace"]}}}]
+    "topic.namespace.map": "{\"*\":\"fo-mongo-new-only\"}"
     }
 }
 ' \
 master:8083/connectors -w "\n"
-"pipeline": "[{"$match":{"operationType":{"$in":["insert","update","replace"]}}}]"
-    }
-    {
-        "name": "mongo-source",
-        "config": {
-        "connector.class":"com.mongodb.kafka.connect.MongoSourceConnector",
-        "connection.uri":"mongodb://admin:27017",
-        "database":"fdb",
-        "collection":"focoll",
-        "prefix":"mongo",
-        "topic.create.enabled":"true",
-        "pipeline": "[{$match:{operationType:{$in:[insert,update,replace]}}}]"
-        }
-    }
+# check the status
+curl master:8083/connectors/mongo-source-newonly/status | jq
+# check if the target topic is created
+kafka-topics --zookeeper master:2181 --list
+# import some data into the mongodb collection
+# check for the topic again
+# if created, run kafka console consumer and verify
+/home/vagrant/kafka/bin/kafka-console-consumer.sh --bootstrap-server master:9092 --topic fo-mongo-new-only --from-beginning --property print.key=true --property print.offset=true --property print.partition=true --property print.timestamp=true
 
-curl -X POST -H "Content-Type: application/json" -d @/vagrant/mongo-source.json master:8083/connectors
+# to copy existing we will require
+# configuration copy.existing=true
+# and a replica set
+# and a pipeline configuration
 
-"pipeline":[{"$match":{"operationType":{"$in":["insert","update","replace"]}}}]"
-
-  "pipeline": [{"$match": {"operationType": "insert"}}, {"$addFields": {"Kafka": "Rules!"}}]
+curl -X DELETE master:8083/connectors/mongo-source-existing
 
 curl -X POST \
-     -H "Content-Type: application/json" \
-     --data '
+-H "Content-Type: application/json" \
+-d '
+{
+    "name": "mongo-source-existing",
+    "config": {
+    "connector.class":"com.mongodb.kafka.connect.MongoSourceConnector",
+    "connection.uri":"mongodb://admin.e4rlearning.com:27018",
+    "database":"fdb",
+    "collection":"focoll",
+    "prefix":"mongo",
+    "pipeline": "[{\"$match\":{\"operationType\":{\"$in\":[\"insert\",\"update\",\"replace\"]}}}]",
+    "copy.existing":true,
+    "publish.full.document.only": true,
+    "topic.namespace.map": "{\"*\":\"fo-mongo-existing\"}"
+    }
+}
+' \
+master:8083/connectors -w "\n"
+# check the status
+curl master:8083/connectors/mongo-source-existing/status | jq
+# check if the target topic is created
+kafka-topics --zookeeper master:2181 --list
+# import some data into the mongodb collection
+# check for the topic again
+# if created, run kafka console consumer and verify
+/home/vagrant/kafka/bin/kafka-console-consumer.sh --bootstrap-server master:9092 --topic fo-mongo-existing --from-beginning --property print.key=true --property print.offset=true --property print.partition=true --property print.timestamp=true
+
+# updates should result in changes being streamed to the topic
+# find the primary
+mongo --eval "rs.status()"
+# issue an update - the changed documents should show up in the topic
+mongo localhost:27018/fdb --eval 'db.focoll.updateMany({SYMBOL:"NIFTY",INSTRUMENT:"FUTIDX"},{$set: {HIGH: 12600}})'
+
+# add some operations basis conditions
+# for some stokcs, ZEEL, for illustration purpose here
+# we will add a MDPRICE field which will be the average of high and low price
+curl -X DELETE master:8083/connectors/mongo-source-qualified
+
+curl -X POST \
+-H "Content-Type: application/json" \
+-d '
+{
+    "name": "mongo-source-qualified",
+    "config": {
+    "connector.class":"com.mongodb.kafka.connect.MongoSourceConnector",
+    "connection.uri":"mongodb://admin.e4rlearning.com:27018",
+    "database":"fdb",
+    "collection":"focoll",
+    "pipeline": "[{\"$match\":{\"operationType\":{\"$in\":[\"insert\",\"update\",\"replace\"]}, \"fullDocument.SYMBOL\":\"ZEEL\", \"fullDocument.INSTRUMENT\": \"FUTSTK\"}},{\"$addFields\":{MDPRICE:{\"$divide\":[{\"$add\":[\"$fullDocument.HIGH\",\"$fullDocument.LOW\"]},2]}}}]",
+    "copy.existing":true,
+    "topic.namespace.map": "{\"*\":\"fo-mongo-existing\"}"
+    }
+}
+' \
+master:8083/connectors -w "\n"
+# check the status
+curl master:8083/connectors/mongo-source-qualified/status | jq
+# as this connector works should show topic messages with MDPRICE for ZEEL
+# load another file to fdb focoll collection and check
+
+######################################################
+## source connector complex object ###################
+######################################################
+
+# to copy existing we will require
+# configuration copy.existing=true
+# and a replica set
+# and a pipeline configuration
+
+curl -X DELETE master:8083/connectors/mongo-source-complex-existing
+
+curl -X POST \
+-H "Content-Type: application/json" \
+-d '
+{
+    "name": "mongo-source-complex-existing",
+    "config": {
+    "connector.class":"com.mongodb.kafka.connect.MongoSourceConnector",
+    "connection.uri":"mongodb://admin.e4rlearning.com:27018",
+    "database":"moviesdb",
+    "collection":"movies",
+    "pipeline": "[{\"$match\":{\"operationType\":{\"$in\":[\"insert\",\"update\",\"replace\"]}}}]",
+    "copy.existing":true,
+    "publish.full.document.only": true,
+    "topic.namespace.map": "{\"*\":\"movies-mongo-existing\"}"
+    }
+}
+' \
+master:8083/connectors -w "\n"
+# check the status
+curl master:8083/connectors/mongo-source-complex-existing/status | jq
+# check if the target topic is created
+kafka-topics --zookeeper master:2181 --list
+# import some data into the mongodb collection
+# check for the topic again
+# if created, run kafka console consumer and verify
+/home/vagrant/kafka/bin/kafka-console-consumer.sh --bootstrap-server master:9092 --topic movies-mongo-existing --from-beginning --property print.key=true --property print.offset=true --property print.partition=true --property print.timestamp=true
+
+####################################################
+ sink connector
+####################################################
+# the schema definition is required for the sink
+# for it to validate and accept data from kafka
+# that should come from schema registry or an inline schema
+
+curl -X DELETE master:8083/connectors/mongo-sink
+kafka-consumer-groups --bootstrap-server master:9092 --describe --group connect-mongo-sink
+kafka-consumer-groups --bootstrap-server master:9092  --group connect-mongo-sink --reset-offsets --to-earliest --topic nsefotopic-avro --execute
+# to prevent duplication of records 
+# use the key with a smt and document id strategy
+# stating that the key will be provided in the document 
+curl -X POST \
+-H "Content-Type: application/json" \
+--data '
      {"name": "mongo-sink",
       "config": {
          "connector.class":"com.mongodb.kafka.connect.MongoSinkConnector",
-         "connection.uri":"mongodb://mongo1:27017/?replicaSet=rs0",
-         "database":"quickstart",
-         "collection":"topicData",
-         "topics":"quickstart.sampleData",
-         "change.data.capture.handler": "com.mongodb.kafka.connect.sink.cdc.mongodb.ChangeStreamHandler"
+         "connection.uri":"mongodb://admin.e4rlearning.com:27017/?replicaSet=rs0",
+         "tasks.max":3,
+         "database":"fdb",
+         "collection":"focollsink",
+         "topics":"nsefotopic-avro",
+         "key.converter":"org.apache.kafka.connect.storage.StringConverter",
+        "key.converter.schema.enable":"false",
+        "value.converter":"io.confluent.connect.avro.AvroConverter",
+        "value.converter.schema.registry.url":"http://master:8081",
+        "transforms":"WrapKey",
+        "transforms.WrapKey.type":"org.apache.kafka.connect.transforms.HoistField$Key",
+        "transforms.WrapKey.field":"_id",
+        "document.id.strategy":"com.mongodb.kafka.connect.sink.processor.id.strategy.ProvidedInKeyStrategy"
          }
      }
      ' \
-     http://connect:8083/connectors -w "\n"
+     http://master:8083/connectors -w "\n"
+
+curl master:8083/connectors/mongo-sink/status | jq
+mongo localhost:27017/fdb --eval "db.focollsink.count()"
+# print the topic and check the keys
+kafka-avro-console-consumer --bootstrap-server master:9092 --topic nsefotopic-avro --property schema.registry.url=http://master:8081 --property print.key=true --key-deserializer org.apache.kafka.common.serialization.StringDeserializer  --from-beginning
