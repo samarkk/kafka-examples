@@ -1,0 +1,123 @@
+{
+  "name": "Course",
+  "type": "record",
+  "namespace": "com.e4rlearning",
+  "fields": [
+    {
+      "name": "course",
+      "type": "string"
+    },
+    {
+      "name": "cno",
+      "type": "string"
+    },
+    {
+      "name": "coursedesc",
+      "type": "string"
+    },
+    {
+      "name": "courselearn",
+      "type": "string"
+    },
+    {
+      "name": "costrupee",
+      "type": "int"
+    },
+    {
+      "name": "costusd",
+      "type": "int"
+    },
+    {
+      "name": "costeuro",
+      "type": "int"
+    },
+    {
+      "name": "chapters",
+      "type": {
+        "type": "array",
+        "items": {
+          "name": "chapters_record",
+          "type": "record",
+          "fields": [
+            {
+              "name": "chapter",
+              "type": "string"
+            },
+            {
+              "name": "hno",
+              "type": "string"
+            },
+            {
+              "name": "chapterdesc",
+              "type": "string"
+            },
+            {
+              "name": "topics",
+              "type": {
+                "type": "array",
+                "items": {
+                  "name": "topics_record",
+                  "type": "record",
+                  "fields": [
+                    {
+                      "name": "topic",
+                      "type": "string"
+                    },
+                    {
+                      "name": "tno",
+                      "type": "string"
+                    },
+                    {
+                      "name": "topicdesc",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "cocsw",
+              "type": "boolean"
+            },
+            {
+              "name": "cocswh",
+              "type": "boolean"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
+
+/*
+Given a json representation for an object
+we can use an online avro schema generator
+to get the avro schema as shown above
+https://toolslick.com/generation/metadata/avro-schema-from-json#
+{
+				"course" : "Spark Essentials With Scala",
+				"cno" : "c1",
+				"coursedesc" : "Demystify spark with intuitve explanation",
+				"courselearn" : "You will become conversant with Spark's Dataframe",
+				"costrupee" : 500,
+				"costusd" : 15,
+				"costeuro" : 12,
+				"chapters" : [
+					{
+						"chapter" : "Installation",
+						"hno" : "c1h1",
+						"chapterdesc" : "Spark can be installed ",
+						"topics" : [
+							{
+								"topic" : "Windows",
+								"tno" : "c1h1t1",
+								"topicdesc" : "Windows Installation"
+							}
+						],
+						"cocsw" : true,
+						"cocswh" : true
+					}
+                ]
+            }
+*/
