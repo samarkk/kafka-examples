@@ -271,7 +271,7 @@ tar xzf /home/vagrant/kafka-connect-cassandra-sink.tar.gz -C /home/vagrant/confl
 # follow the link below to create cassandra-sink.json
 https://github.com/DataStax-Examples/kafka-connector-sink-json/blob/master/connector-config.json
 
-curl -X POST -H "Content-Type: application/json" -d @/home/vagrant/cassandra-sink.json master.e4rlearning.com:9092:8083/connectors
+curl -X POST -H "Content-Type: application/json" -d @/vagrant/cassandra-sink.json master.e4rlearning.com:8083/connectors
 
 #note - in AvroProducerFileClient - have a timestamp field populaed by System.getCurrentMillis(), trdate and expiry_dt are strings populated in ISO Date Format - 2020-01-01, and the cassandra-sink.json uses these fields to match the cassandra fotable types requirement
 #consumerCassandra - push directly from nsefo-topic and date conversion takes place in consumerCassandra
