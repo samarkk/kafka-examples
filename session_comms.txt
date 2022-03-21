@@ -1,7 +1,9 @@
+bin\windows\kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic first-topic --property print.key=true --from-beginning --group first-group --property print.timestamp=true --property print.offset=true --property print.partition=true
 cd C:\kafka
 bin\windows\zookeeper-server-start.bat config\zookeeper.properties
 bin\windows\kafka-server-start.bat config\server.properties
 bin\windows\kafka-topics.bat --bootstrap-server localhost:9092 --create --topic first-topic --partitions 3 --replication-factor 1
 bin\windows\kafka-console-producer.bat --bootstrap-server localhost:9092 --topic first-topic
 bin\windows\kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic first-topic --property print.key=true --from-beginning
+
 
