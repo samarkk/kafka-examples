@@ -1,12 +1,2 @@
-go to localhost:9001
-192.168.50.2:2181
-kafka-rest-start -daemon /home/vagrant/confluent/etc/kafka-rest/kafka-rest.properties
-kafka-console-consumer --bootstrap-server localhost:9092 --topic ide_topic --property print.key=true --property print.partition=true --property print.offset=true --property print.timestamp=true --from-beginning
-System.out.println("Topic: " + metadata.topic() + ", partition: " + metadata.partition() + ", offset: " + metadata.offset() + ", key: " + prec.key() + ",value: " + prec.value());
-kafka-consumer-groups --bootstrap-server master:9092 --list
-kafka-consumer-groups --bootstrap-server master:9092 --group idegroup --describe
-kafka-consumer-groups --bootstrap-server master:9092 --group idegroup --topic nsefotopic --reset-offsets --to-earliest --execute
-kafka-topics --zookeeper master.e4rlearning.com:2181 --create --topic wci --partitions 3 --replication-factor 3
-kafka-topics --zookeeper master.e4rlearning.com:2181 --create --topic wco --partitions 3 --replication-factor 3
-kafka-console-produdcer --bootstrap-server master.e4rlearning.com:9092 --topic wci
-kafka-console-consumer --bootstrap-server master.e4rlearning.com:9092 --topic wco --property print.key=true --value-deserializer org.apache.kafka.common.serialization.LongDeserializer
+cd C:\kafka
+bin\windows\kafka-topics.bat --bootstrap-server localhost:9092 --create --topic first-topic --partitions 3 --replication-factor 1
