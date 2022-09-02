@@ -18,6 +18,8 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.Servlet;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
@@ -247,7 +249,7 @@ public class WordCountInteractiveQueriesRestService {
         rc.register(JacksonFeature.class);
 
         final ServletContainer sc = new ServletContainer(rc);
-        final ServletHolder holder = new ServletHolder(sc);
+        final ServletHolder holder = new ServletHolder((Servlet) sc);
         context.addServlet(holder, "/*");
 
         final ServerConnector connector = new ServerConnector(jettyServer);
