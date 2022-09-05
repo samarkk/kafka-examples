@@ -1,0 +1,23 @@
+# environmental variable HADOOP_CONFI_DIR is set - verify
+echo $HADDOP_CONF_DIR
+#check the configurations
+# default file system is set to hdfs
+cat /home/vagrant/hadoop/etc/hadoop/core-site.xml
+# check hdfs configurations
+# dfs.replication set to 1, namenode, datanode, secondary namenode directories are set
+# web ui is enabled
+cat /home/vagrant/hadoop/etc/hadoop/hdfs-site.xml
+# format the namenode
+hdfs namenode -format
+# start the daemons
+# start the namenode
+hdfs --daemon start namenode
+# verify
+jps
+# start the data node
+hdfs --daemon start datanode
+# verify - in java processes should see namenode datanode
+jps
+# set up hdfs
+# create home directory for user 
+hdfs dfs -mkdir -p /user/vagrant
