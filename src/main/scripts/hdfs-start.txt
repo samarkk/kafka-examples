@@ -21,3 +21,10 @@ jps
 # set up hdfs
 # create home directory for user 
 hdfs dfs -mkdir -p /user/vagrant
+# create the temp directory and make it world writable
+hdfs dfs -mkdir /tmp
+hdfs dfs -chmod 777 /tmp
+# create the spark application history that will come into use later
+hdfs dfs -mkdir /spah
+# make the spark applicaiton history world writable with the sticky bit turned on
+hdfs dfs -chmod 1777 /spah
