@@ -1,5 +1,5 @@
 # environmental variable HADOOP_CONFI_DIR is set - verify
-echo $HADDOP_CONF_DIR
+echo $HADOOP_CONF_DIR
 #check the configurations
 # default file system is set to hdfs
 cat /home/vagrant/hadoop/etc/hadoop/core-site.xml
